@@ -50,9 +50,11 @@ String formatQuantity(double value) {
       .replaceFirst(RegExp(r'\.$'), '');
 }
 
-String formatLineQuantity(OfferLine line) => line.kind == LineKind.labour
-    ? formatLabour(line.quantity)
-    : '${formatQuantity(line.quantity)} Stk.';
+String formatLineQuantity(OfferLine line) => switch (line.kind) {
+  LineKind.labour => formatLabour(line.quantity),
+  LineKind.flat => formatQuantity(line.quantity),
+  LineKind.part => '${formatQuantity(line.quantity)} Stk.',
+};
 
 /// Labour time for display: `20 Min.`, `2 Std.`, `1.5 Std.` or `1:20 Std.`.
 /// Avoids showing rounded decimals such as 0.33 h that do not multiply out.

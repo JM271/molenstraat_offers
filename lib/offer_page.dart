@@ -393,9 +393,28 @@ class _OfferPageState extends State<OfferPage> {
             _Section(
               title: 'Fahrrad',
               children: [
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _bikeModel,
+                  builder: (context, value, _) => Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      for (final model in bikeModels)
+                        ChoiceChip(
+                          label: Text(model),
+                          selected: value.text.trim() == model,
+                          // Tapping the selected model clears it again.
+                          onSelected: (on) => _bikeModel.text = on ? model : '',
+                        ),
+                    ],
+                  ),
+                ),
                 TextField(
                   controller: _bikeModel,
-                  decoration: const InputDecoration(labelText: 'Modell'),
+                  decoration: const InputDecoration(
+                    labelText: 'Modell',
+                    hintText: 'oder anderes Modell eingeben',
+                  ),
                 ),
                 TextField(
                   controller: _frameNumber,
@@ -460,6 +479,11 @@ class _OfferPageState extends State<OfferPage> {
                       onPressed: () => _addLine(LineKind.labour),
                       icon: const Icon(Icons.build_outlined),
                       label: const Text('Arbeit'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => _addLine(LineKind.flat),
+                      icon: const Icon(Icons.sell_outlined),
+                      label: const Text('Pauschale'),
                     ),
                   ],
                 ),
@@ -568,11 +592,11 @@ class _LineTile extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       onTap: onTap,
-      leading: Icon(
-        line.kind == LineKind.labour
-            ? Icons.build_outlined
-            : Icons.settings_outlined,
-      ),
+      leading: Icon(switch (line.kind) {
+        LineKind.labour => Icons.build_outlined,
+        LineKind.flat => Icons.sell_outlined,
+        LineKind.part => Icons.settings_outlined,
+      }),
       title: Text(line.description),
       subtitle: Text(
         [

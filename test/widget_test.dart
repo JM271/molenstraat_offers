@@ -124,6 +124,34 @@ void main() {
     expect(presetSummary(edited, 9000, 'CHF'), isNot(contains('Demo')));
   });
 
+  test('flat rates from the price list count as work', () {
+    final flats = defaultPresets().where((p) => p.isFlat).toList();
+    expect(flats.map((p) => p.flatPriceCents), [3000, 5000, 10000, 15000]);
+    final small = flats.first;
+    expect(RepairPreset.fromJson(small.toJson()).flatPriceCents, 3000);
+    expect(
+      presetSummary(small, 9000, 'CHF'),
+      'Pauschale CHF 30.00 · ≈ CHF 30.00',
+    );
+
+    // A flat price replaces labour time × hourly rate.
+    final service = RepairPreset(
+      id: 's',
+      name: 'Service',
+      labourMinutes: 90,
+      flatPriceCents: 15000,
+      partName: 'Kette',
+      partPriceCents: 2490,
+    );
+    final lines = service.toLines(9000);
+    expect(lines.map((l) => l.kind), [LineKind.flat, LineKind.part]);
+    expect(formatLineQuantity(lines.first), '1');
+    final totals = computeTotals(lines, vatRate: 8.1, pricesIncludeVat: true);
+    expect(totals.labourCents, 15000);
+    expect(totals.partsCents, 2490);
+    expect(OfferLine.fromJson(lines.first.toJson()).kind, LineKind.flat);
+  });
+
   group('store', () {
     test('numbers offers per year, also across devices', () async {
       final db = FakeFirebaseFirestore();
@@ -540,5 +568,97 @@ void main() {
     // Nothing was shared, so no question about marking it as sent.
     expect(find.text('Als gesendet markieren?'), findsNothing);
     expect(find.byType(OfferPage), findsOneWidget);
+  });
+
+  testWidgets('pick one of the usual bike models', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final store = await openStore(FakeFirebaseFirestore());
+    await tester.pumpWidget(OffersApp(store: store));
+    await tester.tap(find.text('Neues Angebot'));
+    await tester.pumpAndSettle();
+    final page = find
+        .descendant(
+          of: find.byType(OfferPage),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.text('Dapper Pro'),
+      200,
+      scrollable: page,
+    );
+    await tester.pumpAndSettle();
+    for (final model in bikeModels) {
+      expect(find.widgetWithText(ChoiceChip, model), findsOneWidget);
+    }
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Storm'));
+    await tester.pump();
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Dapper Pro'));
+    await tester.pump();
+    final modelField = find.widgetWithText(TextField, 'Modell');
+    expect(tester.widget<TextField>(modelField).controller!.text, 'Dapper Pro');
+    expect(
+      tester
+          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Storm'))
+          .selected,
+      isFalse,
+    );
+
+    // Tapping the selected model clears it; free text still works.
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Dapper Pro'));
+    await tester.pump();
+    expect(tester.widget<TextField>(modelField).controller!.text, '');
+    await tester.enterText(modelField, 'Mooi');
+    await tester.pump();
+    expect(
+      tester
+          .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Mooi'))
+          .selected,
+      isTrue,
+    );
+
+    await tester.tap(find.text('Speichern'));
+    await tester.pumpAndSettle();
+    expect(store.offers.single.bikeModel, 'Mooi');
+  });
+
+  testWidgets('add a flat rate to an offer', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final store = await openStore(FakeFirebaseFirestore());
+    await tester.pumpWidget(OffersApp(store: store));
+    await tester.tap(find.text('Neues Angebot'));
+    await tester.pumpAndSettle();
+    final page = find
+        .descendant(
+          of: find.byType(OfferPage),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.widgetWithText(OutlinedButton, 'Pauschale'),
+      200,
+      scrollable: page,
+    );
+    await tester.drag(page, const Offset(0, -250));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Pauschale'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Beschreibung'),
+      'Grosse Reparatur',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Pauschalpreis (CHF)'),
+      '100',
+    );
+    await tester.tap(find.text('Übernehmen'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 × CHF 100.00'), findsOneWidget);
+    expect(find.text('CHF 100.00'), findsWidgets);
   });
 }

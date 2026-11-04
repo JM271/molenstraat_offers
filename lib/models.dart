@@ -19,7 +19,10 @@ enum OfferStatus {
 
 enum LineKind {
   part('Teil'),
-  labour('Arbeit');
+  labour('Arbeit'),
+
+  /// Work at a fixed price, independent of time and hourly rate.
+  flat('Pauschale');
 
   const LineKind(this.label);
   final String label;
@@ -159,10 +162,11 @@ OfferTotals computeTotals(
   var parts = 0;
   var labour = 0;
   for (final line in lines) {
-    if (line.kind == LineKind.labour) {
-      labour += line.totalCents;
-    } else {
+    // Flat rates are work, so they count as labour.
+    if (line.kind == LineKind.part) {
       parts += line.totalCents;
+    } else {
+      labour += line.totalCents;
     }
   }
   final sum = parts + labour;
@@ -266,14 +270,16 @@ class Offer {
   );
 }
 
-/// A reusable repair from the price list: estimated labour plus an optional
-/// part. Adding it to an offer creates one labour line and, if [partName] is
-/// set, one part line.
+/// A reusable repair from the price list: estimated labour or a flat price,
+/// plus an optional part. Adding it to an offer creates one labour line (or
+/// one flat-rate line if [flatPriceCents] is set) and, if [partName] is set,
+/// one part line.
 class RepairPreset {
   RepairPreset({
     required this.id,
     required this.name,
     this.labourMinutes = 0,
+    this.flatPriceCents = 0,
     this.partName = '',
     this.partPriceCents = 0,
     this.demoPrice = false,
@@ -282,14 +288,26 @@ class RepairPreset {
   final String id;
   final String name;
   final int labourMinutes;
+
+  /// Fixed price for the work; when set, it replaces labour time × rate.
+  final int flatPriceCents;
   final String partName;
   final int partPriceCents;
 
   /// True while [partPriceCents] is a placeholder; editing the entry clears it.
   final bool demoPrice;
 
+  bool get isFlat => flatPriceCents > 0;
+
   List<OfferLine> toLines(int hourlyRateCents) => [
-    if (labourMinutes > 0)
+    if (isFlat)
+      OfferLine(
+        kind: LineKind.flat,
+        description: name,
+        quantity: 1,
+        unitPriceCents: flatPriceCents,
+      )
+    else if (labourMinutes > 0)
       OfferLine(
         kind: LineKind.labour,
         description: name,
@@ -309,6 +327,7 @@ class RepairPreset {
     'id': id,
     'name': name,
     'labourMinutes': labourMinutes,
+    if (isFlat) 'flatPriceCents': flatPriceCents,
     'partName': partName,
     'partPriceCents': partPriceCents,
     if (demoPrice) 'demoPrice': true,
@@ -318,6 +337,7 @@ class RepairPreset {
     id: json['id'] as String,
     name: json['name'] as String? ?? '',
     labourMinutes: (json['labourMinutes'] as num?)?.toInt() ?? 0,
+    flatPriceCents: (json['flatPriceCents'] as num?)?.toInt() ?? 0,
     partName: json['partName'] as String? ?? '',
     partPriceCents: (json['partPriceCents'] as num?)?.toInt() ?? 0,
     demoPrice: json['demoPrice'] as bool? ?? false,
@@ -356,8 +376,18 @@ List<RepairPreset> defaultPresets() {
     p('Licht reparieren', 30),
     p('Elektrik-/Akku-Diagnose', 30),
     p('Service komplett', 90),
+    for (final (name, chf) in [
+      ('Kleine Reparatur', 30),
+      ('Mittlere Reparatur', 50),
+      ('Grosse Reparatur', 100),
+      ('Umfangreiche Reparatur', 150),
+    ])
+      RepairPreset(id: 'flat-$chf', name: name, flatPriceCents: chf * 100),
   ];
 }
+
+/// Molenstraat's usual bike models, offered as quick picks in the editor.
+const bikeModels = ['Mooi', 'Dapper Pro', 'Mini MS', 'Storm'];
 
 class ShopSettings {
   const ShopSettings({

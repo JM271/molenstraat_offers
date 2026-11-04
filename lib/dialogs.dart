@@ -120,6 +120,7 @@ class _LineDialogState extends State<_LineDialog> {
   @override
   Widget build(BuildContext context) {
     final labour = _kind == LineKind.labour;
+    final flat = _kind == LineKind.flat;
     return AlertDialog(
       title: Text(widget.isNew ? 'Position hinzufügen' : 'Position'),
       content: Form(
@@ -129,17 +130,10 @@ class _LineDialogState extends State<_LineDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               SegmentedButton<LineKind>(
-                segments: const [
-                  ButtonSegment(
-                    value: LineKind.part,
-                    label: Text('Teil'),
-                    icon: Icon(Icons.settings_outlined),
-                  ),
-                  ButtonSegment(
-                    value: LineKind.labour,
-                    label: Text('Arbeit'),
-                    icon: Icon(Icons.build_outlined),
-                  ),
+                showSelectedIcon: false,
+                segments: [
+                  for (final kind in LineKind.values)
+                    ButtonSegment(value: kind, label: Text(kind.label)),
                 ],
                 selected: {_kind},
                 onSelectionChanged: (s) => _setKind(s.first),
@@ -153,8 +147,12 @@ class _LineDialogState extends State<_LineDialog> {
                 maxLines: 3,
                 decoration: InputDecoration(
                   labelText: 'Beschreibung',
-                  hintText: labour ? 'z.B. Bremse entlüften' : 'z.B. Kette',
-                  helperText: !labour && _sku.isNotEmpty
+                  hintText: switch (_kind) {
+                    LineKind.labour => 'z.B. Bremse entlüften',
+                    LineKind.flat => 'z.B. Kleine Reparatur',
+                    LineKind.part => 'z.B. Kette',
+                  },
+                  helperText: _kind == LineKind.part && _sku.isNotEmpty
                       ? 'Art.-Nr. $_sku'
                       : null,
                 ),
@@ -167,7 +165,11 @@ class _LineDialogState extends State<_LineDialog> {
                     ? TextInputType.number
                     : const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: labour ? 'Arbeitszeit (Minuten)' : 'Menge',
+                  labelText: labour
+                      ? 'Arbeitszeit (Minuten)'
+                      : flat
+                      ? 'Anzahl'
+                      : 'Menge',
                 ),
                 validator: (v) {
                   if (!labour) {
@@ -189,6 +191,8 @@ class _LineDialogState extends State<_LineDialog> {
                 decoration: InputDecoration(
                   labelText: labour
                       ? 'Stundensatz (${widget.currency})'
+                      : flat
+                      ? 'Pauschalpreis (${widget.currency})'
                       : 'Stückpreis (${widget.currency})',
                   helperText:
                       widget.priceNote ??
@@ -232,7 +236,10 @@ Future<List<RepairPreset>?> showPresetPicker(
 
 String presetSummary(RepairPreset p, int hourlyRateCents, String currency) {
   final parts = <String>[
-    if (p.labourMinutes > 0) '${p.labourMinutes} Min. Arbeit',
+    if (p.isFlat)
+      'Pauschale ${formatMoney(p.flatPriceCents, currency)}'
+    else if (p.labourMinutes > 0)
+      '${p.labourMinutes} Min. Arbeit',
     if (p.partName.isNotEmpty)
       '${p.partName} ${p.partPriceCents > 0 ? formatMoney(p.partPriceCents, currency) + (p.demoPrice ? ' (Demo)' : '') : '(Preis fehlt)'}',
   ];
@@ -372,6 +379,9 @@ class _PresetDialogState extends State<_PresetDialog> {
   late final _minutes = TextEditingController(
     text: widget.preset == null ? '30' : '${widget.preset!.labourMinutes}',
   );
+  late final _flatPrice = TextEditingController(
+    text: moneyInput(widget.preset?.flatPriceCents ?? 0),
+  );
   late final _partName = TextEditingController(
     text: widget.preset?.partName ?? '',
   );
@@ -383,6 +393,7 @@ class _PresetDialogState extends State<_PresetDialog> {
   void dispose() {
     _name.dispose();
     _minutes.dispose();
+    _flatPrice.dispose();
     _partName.dispose();
     _partPrice.dispose();
     super.dispose();
@@ -397,6 +408,7 @@ class _PresetDialogState extends State<_PresetDialog> {
             'preset-${DateTime.now().microsecondsSinceEpoch}',
         name: _name.text.trim(),
         labourMinutes: int.tryParse(_minutes.text.trim()) ?? 0,
+        flatPriceCents: parseMoney(_flatPrice.text) ?? 0,
         partName: _partName.text.trim(),
         partPriceCents: parseMoney(_partPrice.text) ?? 0,
       ),
@@ -421,15 +433,37 @@ class _PresetDialogState extends State<_PresetDialog> {
                   (v ?? '').trim().isEmpty ? 'Namen eingeben' : null,
             ),
             TextFormField(
-              controller: _minutes,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Arbeitszeit (Minuten)',
-                helperText: '0 = keine Arbeitsposition',
+              controller: _flatPrice,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
               ),
-              validator: (v) {
-                final n = int.tryParse((v ?? '').trim());
-                return n == null || n < 0 ? 'Ganze Minuten eingeben' : null;
+              decoration: InputDecoration(
+                labelText: 'Pauschalpreis (${widget.currency})',
+                helperText: 'Optional, ersetzt Arbeitszeit × Stundensatz',
+              ),
+              validator: validateMoney,
+            ),
+            // Labour time only applies without a flat price.
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: _flatPrice,
+              builder: (context, flat, _) {
+                final hasFlat = (parseMoney(flat.text) ?? 0) > 0;
+                return TextFormField(
+                  controller: _minutes,
+                  enabled: !hasFlat,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Arbeitszeit (Minuten)',
+                    helperText: hasFlat
+                        ? 'Entfällt bei Pauschale'
+                        : '0 = keine Arbeitsposition',
+                  ),
+                  validator: (v) {
+                    if (hasFlat) return null;
+                    final n = int.tryParse((v ?? '').trim());
+                    return n == null || n < 0 ? 'Ganze Minuten eingeben' : null;
+                  },
+                );
               },
             ),
             TextFormField(
