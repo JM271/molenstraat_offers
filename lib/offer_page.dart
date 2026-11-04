@@ -9,6 +9,7 @@ import 'format.dart';
 import 'models.dart';
 import 'offer_pdf.dart';
 import 'offer_store.dart';
+import 'pdf_preview_page.dart';
 
 class OfferPage extends StatefulWidget {
   const OfferPage({super.key, required this.store, required this.offer});
@@ -22,7 +23,7 @@ class OfferPage extends StatefulWidget {
   State<OfferPage> createState() => _OfferPageState();
 }
 
-enum _Action { share, print, copy, delete }
+enum _Action { preview, share, print, copy, delete }
 
 class _OfferPageState extends State<OfferPage> {
   late final Offer _offer = widget.offer;
@@ -195,25 +196,21 @@ class _OfferPageState extends State<OfferPage> {
         !await _save(close: false)) {
       return;
     }
+    if (!mounted) return;
     final offer = _collect();
     switch (action) {
+      case _Action.preview:
+        final shared = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) =>
+                OfferPdfPreviewPage(offer: offer.copy(), settings: _settings),
+          ),
+        );
+        if (shared == true) await _askMarkSent();
       case _Action.share:
         final bytes = await buildOfferPdf(offer, _settings);
         await Printing.sharePdf(bytes: bytes, filename: offerFileName(offer));
-        if (offer.status == OfferStatus.draft && mounted) {
-          final markSent = await confirm(
-            context,
-            title: 'Als gesendet markieren?',
-            message:
-                'Angebot ${offer.number} wurde geteilt. Status auf '
-                '„Gesendet“ setzen?',
-            action: 'Gesendet',
-          );
-          if (markSent) {
-            _change(() => _offer.status = OfferStatus.sent);
-            await _save(close: false);
-          }
-        }
+        await _askMarkSent();
       case _Action.print:
         await Printing.layoutPdf(
           name: offerFileName(offer),
@@ -228,7 +225,6 @@ class _OfferPageState extends State<OfferPage> {
               .showSnackBar(const SnackBar(content: Text('Text kopiert')));
         }
       case _Action.delete:
-        if (!mounted) return;
         final ok = await confirm(
           context,
           title: 'Angebot löschen?',
@@ -243,6 +239,22 @@ class _OfferPageState extends State<OfferPage> {
           if (mounted) _snack(cloudError(e));
         }
     }
+  }
+
+  /// After a draft was shared, offers to set its status to "Gesendet".
+  Future<void> _askMarkSent() async {
+    if (_offer.status != OfferStatus.draft || !mounted) return;
+    final markSent = await confirm(
+      context,
+      title: 'Als gesendet markieren?',
+      message:
+          'Angebot ${_offer.number} wurde geteilt. Status auf '
+          '„Gesendet“ setzen?',
+      action: 'Gesendet',
+    );
+    if (!markSent) return;
+    _change(() => _offer.status = OfferStatus.sent);
+    await _save(close: false);
   }
 
   @override
@@ -275,9 +287,21 @@ class _OfferPageState extends State<OfferPage> {
         appBar: AppBar(
           title: Text(_offer.number),
           actions: [
+            IconButton(
+              tooltip: 'PDF-Vorschau',
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              onPressed: () => _onAction(_Action.preview),
+            ),
             PopupMenuButton<_Action>(
               onSelected: _onAction,
               itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: _Action.preview,
+                  child: ListTile(
+                    leading: Icon(Icons.picture_as_pdf_outlined),
+                    title: Text('PDF-Vorschau'),
+                  ),
+                ),
                 const PopupMenuItem(
                   value: _Action.share,
                   child: ListTile(
@@ -289,7 +313,7 @@ class _OfferPageState extends State<OfferPage> {
                   value: _Action.print,
                   child: ListTile(
                     leading: Icon(Icons.print),
-                    title: Text('Drucken / Vorschau'),
+                    title: Text('Drucken'),
                   ),
                 ),
                 const PopupMenuItem(

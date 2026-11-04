@@ -13,6 +13,7 @@ import 'package:molenstraat_offers/models.dart';
 import 'package:molenstraat_offers/offer_page.dart';
 import 'package:molenstraat_offers/offer_pdf.dart';
 import 'package:molenstraat_offers/offer_store.dart';
+import 'package:molenstraat_offers/pdf_preview_page.dart';
 
 /// Opens the store like a signed-in member on one device. Several stores on
 /// the same [db] behave like several devices.
@@ -510,5 +511,34 @@ void main() {
     await pickMirror();
     expect(find.widgetWithText(TextFormField, '19.90'), findsOneWidget);
     expect(find.text('Demopreis aus dem Katalog, bitte prüfen'), findsNothing);
+  });
+
+  testWidgets('PDF preview saves a new offer first', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final store = await openStore(FakeFirebaseFirestore());
+    await tester.pumpWidget(OffersApp(store: store));
+    await tester.tap(find.text('Neues Angebot'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Anna');
+
+    await tester.tap(find.byTooltip('PDF-Vorschau'));
+    // The preview renders asynchronously; don't wait for it to settle.
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byType(OfferPdfPreviewPage), findsOneWidget);
+    expect(find.text('Vorschau A-2026-001'), findsOneWidget);
+    expect(store.offers.single.customerName, 'Anna');
+
+    await tester.binding.handlePopRoute();
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byType(OfferPdfPreviewPage), findsNothing);
+    // Nothing was shared, so no question about marking it as sent.
+    expect(find.text('Als gesendet markieren?'), findsNothing);
+    expect(find.byType(OfferPage), findsOneWidget);
   });
 }
