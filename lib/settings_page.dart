@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'dialogs.dart';
 import 'format.dart';
 import 'models.dart';
+import 'firebase_gate.dart';
 import 'offer_store.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -50,20 +51,28 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _save() async {
     if (!_form.currentState!.validate()) return;
-    await widget.store.saveSettings(
-      _s.copyWith(
-        companyName: _companyName.text.trim(),
-        address: _address.text.trim(),
-        phone: _phone.text.trim(),
-        email: _email.text.trim(),
-        hourlyRateCents: parseMoney(_hourlyRate.text),
-        vatRate: double.parse(_vatRate.text.trim().replaceAll(',', '.')),
-        pricesIncludeVat: _pricesIncludeVat,
-        validityDays: int.parse(_validityDays.text.trim()),
-        currency: _currency.text.trim(),
-        footer: _footer.text.trim(),
-      ),
-    );
+    try {
+      await widget.store.saveSettings(
+        _s.copyWith(
+          companyName: _companyName.text.trim(),
+          address: _address.text.trim(),
+          phone: _phone.text.trim(),
+          email: _email.text.trim(),
+          hourlyRateCents: parseMoney(_hourlyRate.text),
+          vatRate: double.parse(_vatRate.text.trim().replaceAll(',', '.')),
+          pricesIncludeVat: _pricesIncludeVat,
+          validityDays: int.parse(_validityDays.text.trim()),
+          currency: _currency.text.trim(),
+          footer: _footer.text.trim(),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(cloudError(e))));
+      }
+      return;
+    }
     if (mounted) Navigator.of(context).pop();
   }
 

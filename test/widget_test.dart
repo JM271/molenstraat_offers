@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 
 import 'package:molenstraat_offers/catalog.dart';
 import 'package:molenstraat_offers/format.dart';
@@ -12,6 +12,20 @@ import 'package:molenstraat_offers/models.dart';
 import 'package:molenstraat_offers/offer_page.dart';
 import 'package:molenstraat_offers/offer_pdf.dart';
 import 'package:molenstraat_offers/offer_store.dart';
+
+/// Opens the store like a signed-in member on one device. Several stores on
+/// the same [db] behave like several devices.
+Future<OfferStore> openStore(
+  FakeFirebaseFirestore db, {
+  String uid = 'u1',
+}) async {
+  final store = OfferStore(db, uid);
+  await store.loaded;
+  return store;
+}
+
+/// Lets snapshot listeners deliver pending changes.
+Future<void> settle() => Future<void>.delayed(Duration.zero);
 
 void main() {
   group('money', () {
@@ -93,29 +107,90 @@ void main() {
   });
 
   group('store', () {
-    setUp(() => SharedPreferences.setMockInitialValues({}));
-
-    test('numbers offers per year and persists them', () async {
-      final store = await OfferStore.load();
+    test('numbers offers per year, also across devices', () async {
+      final db = FakeFirebaseFirestore();
+      final store = await openStore(db);
       final first = store.newOffer(now: DateTime(2026, 11, 4));
       expect(first.number, 'A-2026-001');
       // Unsaved offers do not use up a number.
       expect(store.newOffer(now: DateTime(2026, 11, 4)).number, 'A-2026-001');
 
       first.customerName = 'Anna Muster';
-      await store.saveOffer(first);
+      expect((await store.saveOffer(first)).number, 'A-2026-001');
+      await settle();
       expect(store.newOffer(now: DateTime(2026, 11, 5)).number, 'A-2026-002');
       expect(store.newOffer(now: DateTime(2027, 1, 2)).number, 'A-2027-001');
 
+      // Saving again keeps the number.
+      first.notes = 'Teile bestellt';
+      expect((await store.saveOffer(first)).number, 'A-2026-001');
+
       await store.deleteOffer(first.id);
+      await settle();
       // Deleting never hands out the same number again.
       expect(store.newOffer(now: DateTime(2026, 11, 5)).number, 'A-2026-002');
 
-      final second = store.newOffer(now: DateTime(2026, 11, 6));
-      await store.saveOffer(second);
-      final reloaded = await OfferStore.load();
-      expect(reloaded.offers.single.number, 'A-2026-002');
-      expect(reloaded.presets, isNotEmpty);
+      // Two devices start an offer with the same provisional number; the
+      // second one to save gets the next free number.
+      final other = await openStore(db, uid: 'u2');
+      final mine = store.newOffer(now: DateTime(2026, 11, 6));
+      final theirs = other.newOffer(now: DateTime(2026, 11, 6));
+      expect(theirs.number, mine.number);
+      expect((await store.saveOffer(mine)).number, 'A-2026-002');
+      expect((await other.saveOffer(theirs)).number, 'A-2026-003');
+      await settle();
+      expect(store.offers.map((o) => o.number), ['A-2026-003', 'A-2026-002']);
+      expect(store.presets, isNotEmpty);
+      final saved = await db
+          .doc('workshops/molenstraat/offers/${theirs.id}')
+          .get();
+      expect(saved.data()!['updatedBy'], 'u2');
+    });
+
+    test('settings and price list are shared', () async {
+      final db = FakeFirebaseFirestore();
+      final store = await openStore(db);
+      final other = await openStore(db, uid: 'u2');
+      await store.saveSettings(
+        store.settings.copyWith(
+          address: 'Molenstraat 1',
+          hourlyRateCents: 9600,
+        ),
+      );
+      final preset = RepairPreset(id: 'new', name: 'Sattel tauschen');
+      await store.savePreset(preset);
+      await other.deletePreset('preset-0');
+      await settle();
+      expect(other.settings.hourlyRateCents, 9600);
+      expect(other.presets.map((p) => p.id), contains('new'));
+      expect(store.presets.map((p) => p.id), isNot(contains('preset-0')));
+      expect(store.presets, hasLength(defaultPresets().length));
+    });
+
+    test('reads stock and custom products of the inventory app', () async {
+      final db = FakeFirebaseFirestore();
+      final parts = db.collection('workshops/molenstraat/parts');
+      await parts.doc('a').set({
+        'id': 'a',
+        'name': 'Chain',
+        'sku': 'oxv8-30 ',
+        'quantity': 3,
+        'carQuantity': 1,
+      });
+      await parts.doc('b').set({'id': 'b', 'name': 'Rag', 'sku': ''});
+      await db.doc('workshops/molenstraat/catalog/x').set({
+        'id': 'custom-1',
+        'name': 'Spezialschraube',
+        'category': 'Other',
+        'sku': 'MS-001',
+        'imageAsset': '',
+      });
+      final store = await openStore(db);
+      final stock = store.stockFor('OXV8-30')!;
+      expect((stock.workshop, stock.car, stock.total), (3, 1, 4));
+      expect(stockLabel(stock), 'Lager 3 + 1 Auto');
+      expect(store.stockFor('RF-M09'), isNull);
+      expect(store.customProducts.single.sku, 'MS-001');
     });
   });
 
@@ -154,8 +229,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    SharedPreferences.setMockInitialValues({});
-    final store = await OfferStore.load();
+    final store = await openStore(FakeFirebaseFirestore());
     await store.saveSettings(
       store.settings.copyWith(address: 'Molenstraat 1', hourlyRateCents: 9000),
     );
@@ -210,8 +284,7 @@ void main() {
   });
 
   testWidgets('leaving with unsaved changes asks first', (tester) async {
-    SharedPreferences.setMockInitialValues({});
-    final store = await OfferStore.load();
+    final store = await openStore(FakeFirebaseFirestore());
     await tester.pumpWidget(OffersApp(store: store));
     await tester.tap(find.text('Neues Angebot'));
     await tester.pumpAndSettle();
@@ -232,8 +305,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    SharedPreferences.setMockInitialValues({});
-    final store = await OfferStore.load();
+    final store = await openStore(FakeFirebaseFirestore());
     await store.saveSettings(store.settings.copyWith(hourlyRateCents: 9600));
     await tester.pumpWidget(OffersApp(store: store));
     await tester.tap(find.text('Neues Angebot'));
@@ -319,8 +391,8 @@ void main() {
     });
 
     test('own part prices override the catalog price', () async {
-      SharedPreferences.setMockInitialValues({});
-      final store = await OfferStore.load();
+      final db = FakeFirebaseFirestore();
+      final store = await openStore(db);
       const lock = CatalogProduct(
         sku: 'OXV8-01E',
         name: 'V8 battery lock',
@@ -348,7 +420,7 @@ void main() {
           unitPriceCents: 3000,
         ),
       ], catalogPriceOf: catalogPriceOf);
-      final reloaded = await OfferStore.load();
+      final reloaded = await openStore(db, uid: 'u2');
       expect(reloaded.priceFor(lock), 1500);
       expect(reloaded.partPriceOverride('RF-M09'), 0);
 
@@ -358,7 +430,8 @@ void main() {
         part('OXV8-01E', 1990),
       ], catalogPriceOf: catalogPriceOf);
       expect(reloaded.partPriceOverride('OXV8-01E'), 0);
-      expect((await OfferStore.load()).partPriceOverride('OXV8-01E'), 0);
+      await settle();
+      expect(store.partPriceOverride('OXV8-01E'), 0);
     });
   });
 
@@ -366,8 +439,7 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    SharedPreferences.setMockInitialValues({});
-    final store = await OfferStore.load();
+    final store = await openStore(FakeFirebaseFirestore());
     await tester.pumpWidget(OffersApp(store: store));
 
     Future<void> pickMirror() async {

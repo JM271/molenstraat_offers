@@ -213,7 +213,9 @@ class Offer {
   }) : lines = lines ?? [];
 
   final String id;
-  final String number;
+
+  /// Provisional until the first save, which reserves the next free number.
+  String number;
   final DateTime createdAt;
   DateTime validUntil;
   OfferStatus status;

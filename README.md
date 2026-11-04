@@ -13,7 +13,17 @@ Flutter app for writing repair offers (Reparaturangebote) for Molenstraat Fatbik
 - **Preisliste**: editable list of repairs with labour minutes and an optional part with price. It starts with typical fatbike repairs. The **labour times are rough estimates and part prices are empty**: adjust both to the workshop before use.
 - **Einstellungen**: company name, address, phone, e-mail, hourly rate, VAT rate (default 8.1 %, prices incl. VAT), currency (CHF), validity in days, footer note in the offer.
 
-Data stays on the device (`shared_preferences`); there is no account or cloud sync. Uninstalling the app or clearing its data deletes all offers.
+## Shared database with the Inventory app
+
+The app uses the same Firebase project as the Inventory app (Spoke), `inventory-molenstraat`, and the same accounts:
+
+- **Sign-in**: e-mail and password, the same account as in Spoke. New accounts need approval by an admin in Spoke (**Kontosymbol → Nutzer verwalten**). Editors and admins can use both apps. User management stays in Spoke.
+- **Shared data** under `workshops/molenstraat` in Firestore: `offers`, `offerCounters` (offer numbers per year), `offerConfig/settings`, `offerConfig/presets` (price list) and `partPrices` (own part prices). All approved users see the same offers on every device and in the browser.
+- **Offer numbers** are reserved in a transaction on the first save, so two devices never hand out the same number. A new offer shows a provisional number until it is saved. Sharing, printing or copying an offer saves it first.
+- **Stock** of the Inventory app (`parts`) is shown in the catalog picker and on part lines (`Lager 3 + 1 Auto`, red if fewer than offered). The offers app never changes stock. Custom catalog products added in Spoke appear in the picker too.
+- **Online only**, like Spoke: without a connection, saving fails with a message and nothing is lost on screen. There is no offline cache.
+
+The Firestore rules for these paths live in the **Inventory repository** (`firestore.rules`), because one rule set applies to the whole project. Always deploy the rules from there, from a version that contains the offers section; deploying an older version would lock the offers app out. The Firebase app registrations (Android `com.petehon.molenstraat_offers`, iOS `com.petehon.molenstraatOffers`, web) and their public configuration are in `lib/firebase_config.dart`.
 
 ## Run
 
@@ -23,7 +33,7 @@ flutter run                 # connected phone
 flutter run -d chrome       # browser
 ```
 
-Before the first offer, open **Einstellungen** and enter the address and hourly rate. Then open **Preisliste** and fill in your times and part prices.
+Sign in with your Spoke account. Before the first offer, open **Einstellungen** and enter the address and hourly rate. Then open **Preisliste** and fill in your times and part prices.
 
 ## Development
 
@@ -33,7 +43,9 @@ Before the first offer, open **Einstellungen** and enter the address and hourly 
 | `lib/offer_page.dart` | Offer editor |
 | `lib/dialogs.dart` | Line, price list and confirmation dialogs |
 | `lib/models.dart` | Offer, lines, totals/VAT, price list, settings |
-| `lib/offer_store.dart` | Local storage and offer numbering |
+| `lib/offer_store.dart` | Firestore data access, offer numbering, stock |
+| `lib/firebase_gate.dart` | Sign-in, approval check, error messages |
+| `lib/firebase_config.dart` | Public Firebase app configuration |
 | `lib/offer_pdf.dart` | PDF and text export |
 | `lib/catalog.dart` | Product catalog loading, catalog picker, thumbnails |
 | `lib/brand.dart` | Logo widget and logo asset paths |

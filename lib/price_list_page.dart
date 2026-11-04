@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'dialogs.dart';
+import 'firebase_gate.dart';
 import 'offer_store.dart';
 
 class PriceListPage extends StatelessWidget {
@@ -15,7 +16,21 @@ class PriceListPage extends StatelessWidget {
       preset: preset,
       currency: store.settings.currency,
     );
-    if (result != null) await store.savePreset(result);
+    if (result == null || !context.mounted) return;
+    await _guard(context, () => store.savePreset(result));
+  }
+
+  /// Runs a write to the shared database and reports a failure.
+  Future<void> _guard(
+    BuildContext context,
+    Future<void> Function() write,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await write();
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(cloudError(e))));
+    }
   }
 
   @override
@@ -58,7 +73,8 @@ class PriceListPage extends StatelessWidget {
                   message: '„${presets[i].name}“ aus der Preisliste entfernen?',
                   action: 'Löschen',
                 ),
-                onDismissed: (_) => store.deletePreset(presets[i].id),
+                onDismissed: (_) =>
+                    _guard(context, () => store.deletePreset(presets[i].id)),
                 child: ListTile(
                   title: Text(presets[i].name),
                   subtitle: Text(

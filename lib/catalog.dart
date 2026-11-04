@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'format.dart';
 import 'models.dart';
+import 'offer_store.dart';
 
 const catalogAsset = 'assets/product_catalog.json';
 
@@ -34,18 +35,27 @@ Future<int Function(String sku)> catalogPriceLookup() async {
   return (sku) => prices[sku] ?? 0;
 }
 
+/// Short stock text such as "Lager 3" or "Lager 2 + 1 Auto".
+String stockLabel(StockLevel stock) => stock.car > 0
+    ? 'Lager ${stock.workshop} + ${stock.car} Auto'
+    : 'Lager ${stock.workshop}';
+
 /// Category names in catalog order, without duplicates.
 List<String> catalogCategories(List<CatalogProduct> products) => [
   ...{for (final p in products) p.category},
 ];
 
 /// Lets the user pick one part from the catalog. Returns null when closed.
-/// [priceOf] gives the price to show (own price or catalog price).
+/// [priceOf] gives the price to show (own price or catalog price),
+/// [extraProducts] are added to the bundled catalog (custom products of the
+/// Inventory app) and [stockOf] shows the shared inventory stock.
 Future<CatalogProduct?> showCatalogPicker(
   BuildContext context, {
   required int Function(CatalogProduct product) priceOf,
   required bool Function(CatalogProduct product) isDemoPrice,
   required String currency,
+  List<CatalogProduct> extraProducts = const [],
+  StockLevel? Function(String sku)? stockOf,
 }) => showModalBottomSheet<CatalogProduct>(
   context: context,
   isScrollControlled: true,
@@ -54,6 +64,8 @@ Future<CatalogProduct?> showCatalogPicker(
     priceOf: priceOf,
     isDemoPrice: isDemoPrice,
     currency: currency,
+    extraProducts: extraProducts,
+    stockOf: stockOf,
   ),
 );
 
@@ -62,18 +74,31 @@ class _CatalogPicker extends StatefulWidget {
     required this.priceOf,
     required this.isDemoPrice,
     required this.currency,
+    required this.extraProducts,
+    required this.stockOf,
   });
 
   final int Function(CatalogProduct product) priceOf;
   final bool Function(CatalogProduct product) isDemoPrice;
   final String currency;
+  final List<CatalogProduct> extraProducts;
+  final StockLevel? Function(String sku)? stockOf;
 
   @override
   State<_CatalogPicker> createState() => _CatalogPickerState();
 }
 
 class _CatalogPickerState extends State<_CatalogPicker> {
-  late final Future<List<CatalogProduct>> _products = loadCatalog();
+  late final Future<List<CatalogProduct>> _products = loadCatalog().then((
+    bundled,
+  ) {
+    final known = {for (final p in bundled) p.sku.toUpperCase()};
+    return [
+      ...bundled,
+      for (final p in widget.extraProducts)
+        if (!known.contains(p.sku.toUpperCase())) p,
+    ];
+  });
   String _query = '';
   String? _category;
 
@@ -162,6 +187,7 @@ class _CatalogPickerState extends State<_CatalogPicker> {
                       itemBuilder: (context, i) {
                         final p = visible[i];
                         final price = widget.priceOf(p);
+                        final stock = widget.stockOf?.call(p.sku);
                         return ListTile(
                           leading: ProductImage(product: p),
                           title: Text(
@@ -176,6 +202,7 @@ class _CatalogPickerState extends State<_CatalogPicker> {
                               if (price > 0)
                                 formatMoney(price, widget.currency) +
                                     (widget.isDemoPrice(p) ? ' (Demo)' : ''),
+                              if (stock != null) stockLabel(stock),
                             ].join(' · '),
                           ),
                           onTap: () => Navigator.of(context).pop(p),

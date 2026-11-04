@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'brand.dart';
+import 'firebase_gate.dart';
 import 'format.dart';
 import 'models.dart';
 import 'offer_page.dart';
@@ -9,16 +10,16 @@ import 'offer_store.dart';
 import 'price_list_page.dart';
 import 'settings_page.dart';
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final store = await OfferStore.load();
-  runApp(OffersApp(store: store));
+  runApp(const OffersApp());
 }
 
 class OffersApp extends StatelessWidget {
-  const OffersApp({super.key, required this.store});
+  const OffersApp({super.key, this.store});
 
-  final OfferStore store;
+  /// For tests; without it the app signs in to Firebase first.
+  final OfferStore? store;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -35,7 +36,9 @@ class OffersApp extends StatelessWidget {
       ),
       inputDecorationTheme: const InputDecorationTheme(isDense: true),
     ),
-    home: HomePage(store: store),
+    home: store != null
+        ? HomePage(store: store!)
+        : FirebaseGate(builder: (store) => HomePage(store: store)),
   );
 }
 
@@ -92,14 +95,37 @@ class _HomePageState extends State<HomePage> {
           icon: const Icon(Icons.settings),
           onPressed: () => _push(SettingsPage(store: store)),
         ),
+        const SignOutButton(),
       ],
     ),
     body: ListenableBuilder(
       listenable: store,
       builder: (context, _) {
+        if (store.error != null && !store.isLoaded) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(cloudError(store.error!)),
+            ),
+          );
+        }
+        if (!store.isLoaded) {
+          return const Center(child: CircularProgressIndicator());
+        }
         final offers = store.offers.where(_matches).toList();
         return CustomScrollView(
           slivers: [
+            if (store.error != null)
+              SliverToBoxAdapter(
+                child: Card(
+                  margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  child: ListTile(
+                    leading: const Icon(Icons.cloud_off),
+                    title: Text(cloudError(store.error!)),
+                  ),
+                ),
+              ),
             if (!store.settings.isComplete)
               SliverToBoxAdapter(
                 child: Card(

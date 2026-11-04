@@ -4,6 +4,7 @@ import 'package:printing/printing.dart';
 
 import 'catalog.dart';
 import 'dialogs.dart';
+import 'firebase_gate.dart';
 import 'format.dart';
 import 'models.dart';
 import 'offer_pdf.dart';
@@ -73,22 +74,41 @@ class _OfferPageState extends State<OfferPage> {
     ..problem = _problem.text.trim()
     ..notes = _notes.text.trim();
 
-  Future<void> _save({bool close = true}) async {
+  void _snack(String text) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+
+  /// Saves to the shared database. Returns false (and says why) on failure.
+  Future<bool> _save({bool close = true}) async {
+    if (_saving) return false;
     setState(() => _saving = true);
-    final offer = _collect().copy();
-    await widget.store.saveOffer(offer);
-    if (offer.lines.any((l) => l.sku.isNotEmpty)) {
-      await widget.store.rememberPartPrices(
-        offer.lines,
-        catalogPriceOf: await catalogPriceLookup(),
-      );
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final saved = await widget.store.saveOffer(_collect().copy());
+      // A new offer gets its final number on save; someone else may have
+      // taken the provisional one meanwhile.
+      final renumbered = saved.number != _offer.number;
+      _offer.number = saved.number;
+      if (saved.lines.any((l) => l.sku.isNotEmpty)) {
+        await widget.store.rememberPartPrices(
+          saved.lines,
+          catalogPriceOf: await catalogPriceLookup(),
+        );
+      }
+      if (!mounted) return true;
+      setState(() => _dirty = false);
+      if (renumbered) {
+        messenger.showSnackBar(
+          SnackBar(content: Text('Gespeichert als ${saved.number}')),
+        );
+      }
+      if (close) Navigator.of(context).pop();
+      return true;
+    } catch (e) {
+      if (mounted) _snack(cloudError(e));
+      return false;
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
-    if (!mounted) return;
-    setState(() {
-      _saving = false;
-      _dirty = false;
-    });
-    if (close) Navigator.of(context).pop();
   }
 
   Future<void> _addLine(LineKind kind) async {
@@ -135,6 +155,8 @@ class _OfferPageState extends State<OfferPage> {
       priceOf: store.priceFor,
       isDemoPrice: isDemo,
       currency: _settings.currency,
+      extraProducts: store.customProducts,
+      stockOf: store.stockFor,
     );
     if (product == null || !mounted) return;
     final line = await showLineDialog(
@@ -167,10 +189,15 @@ class _OfferPageState extends State<OfferPage> {
   }
 
   Future<void> _onAction(_Action action) async {
+    // Anything handed out must be saved, with its final number.
+    if (action != _Action.delete &&
+        (_dirty || _isNew) &&
+        !await _save(close: false)) {
+      return;
+    }
     final offer = _collect();
     switch (action) {
       case _Action.share:
-        if (_dirty) await _save(close: false);
         final bytes = await buildOfferPdf(offer, _settings);
         await Printing.sharePdf(bytes: bytes, filename: offerFileName(offer));
         if (offer.status == OfferStatus.draft && mounted) {
@@ -201,6 +228,7 @@ class _OfferPageState extends State<OfferPage> {
               .showSnackBar(const SnackBar(content: Text('Text kopiert')));
         }
       case _Action.delete:
+        if (!mounted) return;
         final ok = await confirm(
           context,
           title: 'Angebot löschen?',
@@ -208,8 +236,12 @@ class _OfferPageState extends State<OfferPage> {
           action: 'Löschen',
         );
         if (!ok) return;
-        await widget.store.deleteOffer(offer.id);
-        if (mounted) Navigator.of(context).pop();
+        try {
+          await widget.store.deleteOffer(offer.id);
+          if (mounted) Navigator.of(context).pop();
+        } catch (e) {
+          if (mounted) _snack(cloudError(e));
+        }
     }
   }
 
@@ -373,6 +405,9 @@ class _OfferPageState extends State<OfferPage> {
                 for (var i = 0; i < _offer.lines.length; i++)
                   _LineTile(
                     line: _offer.lines[i],
+                    stock: _offer.lines[i].sku.isEmpty
+                        ? null
+                        : widget.store.stockFor(_offer.lines[i].sku),
                     currency: _settings.currency,
                     onTap: () => _editLine(i),
                     onDelete: () => _change(() => _offer.lines.removeAt(i)),
@@ -487,12 +522,16 @@ class _Section extends StatelessWidget {
 class _LineTile extends StatelessWidget {
   const _LineTile({
     required this.line,
+    required this.stock,
     required this.currency,
     required this.onTap,
     required this.onDelete,
   });
 
   final OfferLine line;
+
+  /// Stock in the shared inventory, null for parts not stocked there.
+  final StockLevel? stock;
   final String currency;
   final VoidCallback onTap;
   final VoidCallback onDelete;
@@ -500,6 +539,8 @@ class _LineTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final error = Theme.of(context).colorScheme.error;
+    final stock = this.stock;
+    final shortage = stock != null && stock.total < line.quantity;
     return ListTile(
       contentPadding: EdgeInsets.zero,
       onTap: onTap,
@@ -512,11 +553,13 @@ class _LineTile extends StatelessWidget {
       subtitle: Text(
         [
           if (line.sku.isNotEmpty) 'Art.-Nr. ${line.sku}',
+          if (stock != null)
+            stockLabel(stock) + (shortage ? ' (zu wenig)' : ''),
           line.missingPrice
               ? '${formatLineQuantity(line)} · Preis fehlt'
               : '${formatLineQuantity(line)} × ${formatMoney(line.unitPriceCents, currency)}',
         ].join(' · '),
-        style: line.missingPrice ? TextStyle(color: error) : null,
+        style: line.missingPrice || shortage ? TextStyle(color: error) : null,
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
