@@ -52,6 +52,26 @@ class PriceListPage extends StatelessWidget {
                 'anpassen und Teilepreise eintragen.',
               ),
             ),
+            if (presets.any((p) => p.demoPrice))
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Teilepreise mit „(Demo)“ sind Demopreise und nicht '
+                  'verbindlich. Beim Bearbeiten und Speichern einer Reparatur '
+                  'gilt ihr Preis als geprüft.',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onErrorContainer,
+                  ),
+                ),
+              ),
             if (presets.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(32),

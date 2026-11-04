@@ -276,6 +276,7 @@ class RepairPreset {
     this.labourMinutes = 0,
     this.partName = '',
     this.partPriceCents = 0,
+    this.demoPrice = false,
   });
 
   final String id;
@@ -283,6 +284,9 @@ class RepairPreset {
   final int labourMinutes;
   final String partName;
   final int partPriceCents;
+
+  /// True while [partPriceCents] is a placeholder; editing the entry clears it.
+  final bool demoPrice;
 
   List<OfferLine> toLines(int hourlyRateCents) => [
     if (labourMinutes > 0)
@@ -307,6 +311,7 @@ class RepairPreset {
     'labourMinutes': labourMinutes,
     'partName': partName,
     'partPriceCents': partPriceCents,
+    if (demoPrice) 'demoPrice': true,
   };
 
   factory RepairPreset.fromJson(Map<String, dynamic> json) => RepairPreset(
@@ -315,29 +320,38 @@ class RepairPreset {
     labourMinutes: (json['labourMinutes'] as num?)?.toInt() ?? 0,
     partName: json['partName'] as String? ?? '',
     partPriceCents: (json['partPriceCents'] as num?)?.toInt() ?? 0,
+    demoPrice: json['demoPrice'] as bool? ?? false,
   );
 }
 
 /// Starter price list. Labour times are rough workshop estimates and part
-/// prices are left at 0 so they get filled in from real supplier prices.
+/// prices are demo prices (CHF incl. VAT, in line with the catalog's demo
+/// prices) until the real prices are entered.
 List<RepairPreset> defaultPresets() {
   var i = 0;
-  RepairPreset p(String name, int minutes, [String part = '']) => RepairPreset(
+  RepairPreset p(
+    String name,
+    int minutes, [
+    String part = '',
+    int partPriceCents = 0,
+  ]) => RepairPreset(
     id: 'preset-${i++}',
     name: name,
     labourMinutes: minutes,
     partName: part,
+    partPriceCents: partPriceCents,
+    demoPrice: partPriceCents > 0,
   );
   return [
-    p('Platten beheben, Schlauch ersetzen', 30, 'Fatbike-Schlauch'),
-    p('Reifen ersetzen', 30, 'Fatbike-Reifen'),
-    p('Bremsbeläge ersetzen (pro Rad)', 20, 'Bremsbeläge'),
-    p('Bremsscheibe ersetzen', 15, 'Bremsscheibe'),
+    p('Platten beheben, Schlauch ersetzen', 30, 'Fatbike-Schlauch', 1490),
+    p('Reifen ersetzen', 30, 'Fatbike-Reifen', 5990),
+    p('Bremsbeläge ersetzen (pro Rad)', 20, 'Bremsbeläge', 1490),
+    p('Bremsscheibe ersetzen', 15, 'Bremsscheibe', 2490),
     p('Bremse entlüften', 30),
-    p('Kette ersetzen', 15, 'Kette'),
+    p('Kette ersetzen', 15, 'Kette', 2490),
     p('Schaltung einstellen', 20),
-    p('Schaltzug ersetzen', 30, 'Schaltzug'),
-    p('Speiche ersetzen', 30, 'Speiche'),
+    p('Schaltzug ersetzen', 30, 'Schaltzug', 690),
+    p('Speiche ersetzen', 30, 'Speiche', 290),
     p('Laufrad zentrieren', 30),
     p('Licht reparieren', 30),
     p('Elektrik-/Akku-Diagnose', 30),

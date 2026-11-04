@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 
 import 'package:molenstraat_offers/catalog.dart';
+import 'package:molenstraat_offers/dialogs.dart';
 import 'package:molenstraat_offers/format.dart';
 import 'package:molenstraat_offers/main.dart';
 import 'package:molenstraat_offers/models.dart';
@@ -104,6 +105,22 @@ void main() {
     expect(lines[0].kind, LineKind.labour);
     expect(lines[0].totalCents, 3000);
     expect(lines[1].totalCents, 2500);
+  });
+
+  test('price list starts with flagged demo part prices', () {
+    final presets = defaultPresets();
+    final withPart = presets.where((p) => p.partName.isNotEmpty);
+    expect(withPart, isNotEmpty);
+    expect(withPart.every((p) => p.partPriceCents > 0 && p.demoPrice), isTrue);
+    expect(presets.where((p) => p.partName.isEmpty && p.demoPrice), isEmpty);
+    final chain = presets.firstWhere((p) => p.partName == 'Kette');
+    expect(RepairPreset.fromJson(chain.toJson()).demoPrice, isTrue);
+    expect(presetSummary(chain, 9000, 'CHF'), contains('CHF 24.90 (Demo)'));
+    // An edited entry (saved without the flag) counts as checked.
+    final edited = RepairPreset.fromJson(
+      {...chain.toJson()}..remove('demoPrice'),
+    );
+    expect(presetSummary(edited, 9000, 'CHF'), isNot(contains('Demo')));
   });
 
   group('store', () {

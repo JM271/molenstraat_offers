@@ -234,7 +234,7 @@ String presetSummary(RepairPreset p, int hourlyRateCents, String currency) {
   final parts = <String>[
     if (p.labourMinutes > 0) '${p.labourMinutes} Min. Arbeit',
     if (p.partName.isNotEmpty)
-      '${p.partName} ${p.partPriceCents > 0 ? formatMoney(p.partPriceCents, currency) : '(Preis fehlt)'}',
+      '${p.partName} ${p.partPriceCents > 0 ? formatMoney(p.partPriceCents, currency) + (p.demoPrice ? ' (Demo)' : '') : '(Preis fehlt)'}',
   ];
   final total = p
       .toLines(hourlyRateCents)
