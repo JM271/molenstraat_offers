@@ -64,6 +64,9 @@ flutter:
 
   assets:
     - assets/fonts/
+    - assets/brand/
+    - assets/product_catalog.json
+    - assets/products/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

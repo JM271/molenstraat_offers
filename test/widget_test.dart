@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:molenstraat_offers/catalog.dart';
 import 'package:molenstraat_offers/format.dart';
 import 'package:molenstraat_offers/main.dart';
 import 'package:molenstraat_offers/models.dart';
@@ -220,7 +224,8 @@ void main() {
     await tester.tap(find.text('Verwerfen'));
     await tester.pumpAndSettle();
     expect(store.offers, isEmpty);
-    expect(find.text('Reparaturangebote'), findsOneWidget);
+    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.byType(OfferPage), findsNothing);
   });
 
   testWidgets('labour is entered in minutes', (tester) async {
@@ -256,5 +261,165 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('20 Min. × CHF 96.00'), findsOneWidget);
     expect(find.text('CHF 32.00'), findsWidgets);
+  });
+
+  group('catalog', () {
+    TestWidgetsFlutterBinding.ensureInitialized();
+
+    test('bundled catalog loads and its pictures exist', () async {
+      // Not via loadCatalog(): its cached future would be bound to this
+      // test's zone and never resolve inside the widget test's fake async.
+      final data = await rootBundle.load(catalogAsset);
+      final products = parseCatalog(utf8.decode(data.buffer.asUint8List()));
+      expect(products, hasLength(243));
+      expect(products.map((p) => p.sku).toSet(), hasLength(products.length));
+      expect(catalogCategories(products), contains('Brakes'));
+      for (final p in products.where((p) => p.imageAsset.isNotEmpty)) {
+        final data = await rootBundle.load(p.imageAsset);
+        expect(data.lengthInBytes, greaterThan(0), reason: p.imageAsset);
+      }
+      // Every part has a (for now: demo) price.
+      expect(products.where((p) => p.priceCents <= 0), isEmpty);
+      final mirror = products.firstWhere((p) => p.sku == 'RF-M09');
+      expect(mirror.priceCents, 2490);
+      expect(mirror.demoPrice, isTrue);
+      expect(mirror.matches('rf-m'), isTrue);
+      expect(mirror.matches('mirror'), isTrue);
+    });
+
+    test('article number is kept on the line and in the exports', () async {
+      final line = OfferLine.fromJson(
+        OfferLine(
+          kind: LineKind.part,
+          description: 'V8 battery lock',
+          quantity: 1,
+          unitPriceCents: 1500,
+          sku: 'OXV8-01E',
+        ).toJson(),
+      );
+      expect(line.sku, 'OXV8-01E');
+      // Lines saved before the catalog existed have no SKU.
+      expect(
+        OfferLine.fromJson({'kind': 'part', 'description': 'Kette'}).sku,
+        '',
+      );
+      final offer = Offer(
+        id: '1',
+        number: 'A-2026-001',
+        createdAt: DateTime(2026, 11, 4),
+        validUntil: DateTime(2026, 12, 4),
+        lines: [line],
+      );
+      expect(
+        offerText(offer, const ShopSettings()),
+        contains('- V8 battery lock (Art.-Nr. OXV8-01E): 1 Stk. × CHF 15.00'),
+      );
+      final bytes = await buildOfferPdf(offer, const ShopSettings());
+      expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
+    });
+
+    test('own part prices override the catalog price', () async {
+      SharedPreferences.setMockInitialValues({});
+      final store = await OfferStore.load();
+      const lock = CatalogProduct(
+        sku: 'OXV8-01E',
+        name: 'V8 battery lock',
+        category: 'Electrics',
+        priceCents: 1990,
+        demoPrice: true,
+      );
+      int catalogPriceOf(String sku) => sku == lock.sku ? 1990 : 0;
+      OfferLine part(String sku, int cents) => OfferLine(
+        kind: LineKind.part,
+        description: sku,
+        quantity: 1,
+        unitPriceCents: cents,
+        sku: sku,
+      );
+      expect(store.priceFor(lock), 1990);
+
+      await store.rememberPartPrices([
+        part('OXV8-01E', 1500),
+        part('RF-M09', 0), // no price: ignored
+        OfferLine(
+          kind: LineKind.part,
+          description: 'Kette',
+          quantity: 1,
+          unitPriceCents: 3000,
+        ),
+      ], catalogPriceOf: catalogPriceOf);
+      final reloaded = await OfferStore.load();
+      expect(reloaded.priceFor(lock), 1500);
+      expect(reloaded.partPriceOverride('RF-M09'), 0);
+
+      // Going back to the catalog price drops the override, so a later
+      // catalog update (real prices) is used again.
+      await reloaded.rememberPartPrices([
+        part('OXV8-01E', 1990),
+      ], catalogPriceOf: catalogPriceOf);
+      expect(reloaded.partPriceOverride('OXV8-01E'), 0);
+      expect((await OfferStore.load()).partPriceOverride('OXV8-01E'), 0);
+    });
+  });
+
+  testWidgets('add a part from the catalog', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    SharedPreferences.setMockInitialValues({});
+    final store = await OfferStore.load();
+    await tester.pumpWidget(OffersApp(store: store));
+
+    Future<void> pickMirror() async {
+      await tester.tap(find.text('Neues Angebot'));
+      await tester.pumpAndSettle();
+      final page = find
+          .descendant(
+            of: find.byType(OfferPage),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.text('Teil aus Katalog'),
+        200,
+        scrollable: page,
+      );
+      await tester.drag(page, const Offset(0, -250));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Teil aus Katalog'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ChoiceChip, 'Cockpit'));
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Teil oder Artikelnummer suchen'),
+        'rf-m09',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('rearview mirror'));
+      await tester.pumpAndSettle();
+      expect(find.text('Art.-Nr. RF-M09'), findsOneWidget);
+    }
+
+    // The catalog's demo price is filled in and flagged.
+    await pickMirror();
+    expect(find.widgetWithText(TextFormField, '24.90'), findsOneWidget);
+    expect(
+      find.text('Demopreis aus dem Katalog, bitte prüfen'),
+      findsOneWidget,
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Stückpreis (CHF)'),
+      '19.90',
+    );
+    await tester.tap(find.text('Übernehmen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Art.-Nr. RF-M09 · 1 Stk. × CHF 19.90'), findsOneWidget);
+    await tester.tap(find.text('Speichern'));
+    await tester.pumpAndSettle();
+    expect(store.offers.single.lines.single.sku, 'RF-M09');
+
+    // The next offer fills in the own price, without the demo warning.
+    await pickMirror();
+    expect(find.widgetWithText(TextFormField, '19.90'), findsOneWidget);
+    expect(find.text('Demopreis aus dem Katalog, bitte prüfen'), findsNothing);
   });
 }

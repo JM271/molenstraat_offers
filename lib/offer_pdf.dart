@@ -3,11 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'brand.dart';
 import 'format.dart';
 import 'models.dart';
 
-final _green = PdfColor.fromHex('#176B54');
-final _grey = PdfColor.fromHex('#5F6B66');
+final _ink = PdfColor.fromHex('#111111');
+final _grey = PdfColor.fromHex('#666666');
 
 String offerFileName(Offer offer) =>
     'Reparaturangebot_${offer.number}.pdf'.replaceAll(RegExp(r'[^\w.-]'), '_');
@@ -38,7 +39,9 @@ String offerText(Offer offer, ShopSettings settings) {
   b.writeln();
   for (final line in offer.lines) {
     b.writeln(
-      '- ${line.description}: ${formatLineQuantity(line)} × '
+      '- ${line.description}'
+      '${line.sku.isEmpty ? '' : ' (Art.-Nr. ${line.sku})'}: '
+      '${formatLineQuantity(line)} × '
       '${money(line.unitPriceCents)} = ${money(line.totalCents)}',
     );
   }
@@ -76,6 +79,14 @@ Future<Uint8List> buildOfferPdf(Offer offer, ShopSettings settings) async {
     pricesIncludeVat: settings.pricesIncludeVat,
   );
   String money(int cents) => formatMoney(cents, settings.currency);
+  final logo = pw.MemoryImage(
+    (await rootBundle.load(logoAsset)).buffer.asUint8List(),
+  );
+  // The logo already reads "Molenstraat Fatbikes"; only a different company
+  // name (e.g. the legal entity) is printed underneath.
+  final showCompanyName =
+      settings.companyName.trim().isNotEmpty &&
+      settings.companyName.trim().toLowerCase() != 'molenstraat fatbikes';
   // Noto Sans covers umlauts, €, dashes and typographic quotes, which the
   // built-in PDF fonts cannot render.
   final doc = pw.Document(
@@ -159,14 +170,16 @@ Future<Uint8List> buildOfferPdf(Offer offer, ShopSettings settings) async {
               child: pw.Column(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text(
-                    settings.companyName,
-                    style: pw.TextStyle(
-                      fontSize: 18,
-                      fontWeight: pw.FontWeight.bold,
-                      color: _green,
+                  pw.Image(logo, height: 30),
+                  pw.SizedBox(height: 8),
+                  if (showCompanyName)
+                    pw.Text(
+                      settings.companyName,
+                      style: pw.TextStyle(
+                        fontSize: 9,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
                     ),
-                  ),
                   for (final row in [
                     ...settings.address.split('\n'),
                     settings.phone,
@@ -206,7 +219,7 @@ Future<Uint8List> buildOfferPdf(Offer offer, ShopSettings settings) async {
           ],
         ),
         pw.SizedBox(height: 14),
-        pw.Divider(color: _green, thickness: 1.2),
+        pw.Divider(color: _ink, thickness: 1.2),
         pw.SizedBox(height: 10),
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -238,14 +251,15 @@ Future<Uint8List> buildOfferPdf(Offer offer, ShopSettings settings) async {
             for (var i = 0; i < offer.lines.length; i++)
               [
                 '${i + 1}',
-                '${offer.lines[i].kind.label}: ${offer.lines[i].description}',
+                '${offer.lines[i].kind.label}: ${offer.lines[i].description}'
+                    '${offer.lines[i].sku.isEmpty ? '' : '\nArt.-Nr. ${offer.lines[i].sku}'}',
                 formatLineQuantity(offer.lines[i]),
                 money(offer.lines[i].unitPriceCents),
                 money(offer.lines[i].totalCents),
               ],
           ],
           headerStyle: headerStyle,
-          headerDecoration: pw.BoxDecoration(color: _green),
+          headerDecoration: pw.BoxDecoration(color: _ink),
           cellStyle: cellStyle,
           cellPadding: const pw.EdgeInsets.symmetric(
             horizontal: 5,

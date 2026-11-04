@@ -36,10 +36,14 @@ class OfferLine {
     required this.description,
     required this.quantity,
     required this.unitPriceCents,
+    this.sku = '',
   });
 
   final LineKind kind;
   final String description;
+
+  /// Article number when the part comes from the product catalog.
+  final String sku;
 
   /// Pieces for parts, hours for labour.
   final double quantity;
@@ -54,11 +58,13 @@ class OfferLine {
     String? description,
     double? quantity,
     int? unitPriceCents,
+    String? sku,
   }) => OfferLine(
     kind: kind ?? this.kind,
     description: description ?? this.description,
     quantity: quantity ?? this.quantity,
     unitPriceCents: unitPriceCents ?? this.unitPriceCents,
+    sku: sku ?? this.sku,
   );
 
   Map<String, dynamic> toJson() => {
@@ -66,6 +72,7 @@ class OfferLine {
     'description': description,
     'quantity': quantity,
     'unitPriceCents': unitPriceCents,
+    if (sku.isNotEmpty) 'sku': sku,
   };
 
   factory OfferLine.fromJson(Map<String, dynamic> json) => OfferLine(
@@ -73,7 +80,49 @@ class OfferLine {
     description: json['description'] as String? ?? '',
     quantity: (json['quantity'] as num?)?.toDouble() ?? 1,
     unitPriceCents: (json['unitPriceCents'] as num?)?.toInt() ?? 0,
+    sku: json['sku'] as String? ?? '',
   );
+}
+
+/// A part from the bundled supplier catalog (`assets/product_catalog.json`).
+/// Prices the user enters that differ from [priceCents] are remembered per
+/// SKU in the store and take precedence.
+class CatalogProduct {
+  const CatalogProduct({
+    required this.sku,
+    required this.name,
+    required this.category,
+    this.imageAsset = '',
+    this.priceCents = 0,
+    this.demoPrice = false,
+  });
+
+  final String sku;
+  final String name;
+  final String category;
+
+  /// Empty when the catalog has no picture for this part.
+  final String imageAsset;
+
+  /// Catalog sales price incl. VAT, 0 when unknown.
+  final int priceCents;
+
+  /// True while [priceCents] is a placeholder, not a real shop price.
+  final bool demoPrice;
+
+  factory CatalogProduct.fromJson(Map<String, dynamic> json) => CatalogProduct(
+    sku: (json['sku'] as String? ?? '').trim(),
+    name: (json['name'] as String? ?? '').trim(),
+    category: (json['category'] as String? ?? '').trim(),
+    imageAsset: (json['imageAsset'] as String? ?? '').trim(),
+    priceCents: (json['priceCents'] as num?)?.toInt() ?? 0,
+    demoPrice: json['demoPrice'] as bool? ?? false,
+  );
+
+  bool matches(String query) {
+    final q = query.toLowerCase();
+    return sku.toLowerCase().contains(q) || name.toLowerCase().contains(q);
+  }
 }
 
 class OfferTotals {

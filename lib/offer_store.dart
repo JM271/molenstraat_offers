@@ -13,10 +13,12 @@ class OfferStore extends ChangeNotifier {
   static const _settingsKey = 'settings_v1';
   static const _presetsKey = 'presets_v1';
   static const _counterKey = 'offer_counter_v1';
+  static const _partPricesKey = 'part_prices_v1';
 
   final SharedPreferences _prefs;
   final List<Offer> _offers = [];
   final List<RepairPreset> _presets = [];
+  final Map<String, int> _partPrices = {};
   ShopSettings _settings = const ShopSettings();
 
   static Future<OfferStore> load() async {
@@ -28,6 +30,17 @@ class OfferStore extends ChangeNotifier {
   List<Offer> get offers => List.unmodifiable(_offers);
   List<RepairPreset> get presets => List.unmodifiable(_presets);
   ShopSettings get settings => _settings;
+
+  /// Price the user set for a catalog part instead of the catalog price,
+  /// 0 if there is none.
+  int partPriceOverride(String sku) => _partPrices[sku] ?? 0;
+
+  /// Price to offer for a catalog part: the user's own price if set,
+  /// otherwise the catalog price.
+  int priceFor(CatalogProduct product) {
+    final own = partPriceOverride(product.sku);
+    return own > 0 ? own : product.priceCents;
+  }
 
   void _read() {
     final offers = _prefs.getString(_offersKey);
@@ -53,6 +66,13 @@ class OfferStore extends ChangeNotifier {
                   RepairPreset.fromJson(Map<String, dynamic>.from(row as Map)),
             ),
     );
+    final partPrices = _prefs.getString(_partPricesKey);
+    if (partPrices != null) {
+      _partPrices.addAll(
+        Map<String, dynamic>.from(jsonDecode(partPrices) as Map)
+            .map((k, v) => MapEntry(k, (v as num).toInt())),
+      );
+    }
     _sortOffers();
   }
 
@@ -141,4 +161,29 @@ class OfferStore extends ChangeNotifier {
     _presetsKey,
     jsonEncode(_presets.map((p) => p.toJson()).toList()),
   );
+
+  /// Remembers prices of catalog parts that differ from the catalog, so the
+  /// next offer fills them in. A price equal to the catalog price clears the
+  /// override, so a later catalog update takes effect. Lines without SKU or
+  /// without price are ignored.
+  Future<void> rememberPartPrices(
+    Iterable<OfferLine> lines, {
+    required int Function(String sku) catalogPriceOf,
+  }) async {
+    var changed = false;
+    for (final line in lines) {
+      if (line.kind != LineKind.part || line.sku.isEmpty) continue;
+      final price = line.unitPriceCents;
+      if (price <= 0) continue;
+      if (price == catalogPriceOf(line.sku)) {
+        changed |= _partPrices.remove(line.sku) != null;
+      } else if (_partPrices[line.sku] != price) {
+        _partPrices[line.sku] = price;
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    await _prefs.setString(_partPricesKey, jsonEncode(_partPrices));
+    notifyListeners();
+  }
 }

@@ -13,16 +13,21 @@ String? validateMoney(String? value, {bool required = false}) {
 }
 
 /// Edits or creates an offer line. Returns null when cancelled.
+/// Pass [isNew] with a prefilled [line] to add a line, e.g. from the catalog.
 Future<OfferLine?> showLineDialog(
   BuildContext context, {
   OfferLine? line,
+  bool? isNew,
   LineKind kind = LineKind.part,
+  String? priceNote,
   required int hourlyRateCents,
   required String currency,
 }) => showDialog<OfferLine>(
   context: context,
   builder: (_) => _LineDialog(
     line: line,
+    isNew: isNew ?? line == null,
+    priceNote: priceNote,
     kind: line?.kind ?? kind,
     hourlyRateCents: hourlyRateCents,
     currency: currency,
@@ -32,12 +37,18 @@ Future<OfferLine?> showLineDialog(
 class _LineDialog extends StatefulWidget {
   const _LineDialog({
     required this.line,
+    required this.isNew,
+    this.priceNote,
     required this.kind,
     required this.hourlyRateCents,
     required this.currency,
   });
 
   final OfferLine? line;
+  final bool isNew;
+
+  /// Shown under the price field, e.g. a warning about a demo price.
+  final String? priceNote;
   final LineKind kind;
   final int hourlyRateCents;
   final String currency;
@@ -98,15 +109,19 @@ class _LineDialogState extends State<_LineDialog> {
             ? int.parse(_quantity.text.trim()) / 60
             : parseQuantity(_quantity.text)!,
         unitPriceCents: parseMoney(_price.text) ?? 0,
+        // A catalog article number only makes sense on a part.
+        sku: _kind == LineKind.part ? _sku : '',
       ),
     );
   }
+
+  String get _sku => widget.line?.sku ?? '';
 
   @override
   Widget build(BuildContext context) {
     final labour = _kind == LineKind.labour;
     return AlertDialog(
-      title: Text(widget.line == null ? 'Position hinzufügen' : 'Position'),
+      title: Text(widget.isNew ? 'Position hinzufügen' : 'Position'),
       content: Form(
         key: _form,
         child: SingleChildScrollView(
@@ -134,9 +149,14 @@ class _LineDialogState extends State<_LineDialog> {
                 controller: _description,
                 autofocus: widget.line == null,
                 textCapitalization: TextCapitalization.sentences,
+                minLines: 1,
+                maxLines: 3,
                 decoration: InputDecoration(
                   labelText: 'Beschreibung',
                   hintText: labour ? 'z.B. Bremse entlüften' : 'z.B. Kette',
+                  helperText: !labour && _sku.isNotEmpty
+                      ? 'Art.-Nr. $_sku'
+                      : null,
                 ),
                 validator: (v) =>
                     (v ?? '').trim().isEmpty ? 'Beschreibung eingeben' : null,
@@ -170,7 +190,10 @@ class _LineDialogState extends State<_LineDialog> {
                   labelText: labour
                       ? 'Stundensatz (${widget.currency})'
                       : 'Stückpreis (${widget.currency})',
-                  helperText: 'Leer lassen, wenn der Preis noch fehlt',
+                  helperText:
+                      widget.priceNote ??
+                      'Leer lassen, wenn der Preis noch fehlt',
+                  helperMaxLines: 2,
                 ),
                 validator: validateMoney,
                 onFieldSubmitted: (_) => _submit(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'brand.dart';
 import 'format.dart';
 import 'models.dart';
 import 'offer_page.dart';
@@ -27,7 +28,11 @@ class OffersApp extends StatelessWidget {
     supportedLocales: const [Locale('de', 'CH'), Locale('de')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
     theme: ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff176b54)),
+      // Black and white like the Molenstraat logo; errors stay red.
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.black,
+        dynamicSchemeVariant: DynamicSchemeVariant.monochrome,
+      ),
       inputDecorationTheme: const InputDecorationTheme(isDense: true),
     ),
     home: HomePage(store: store),
@@ -75,7 +80,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Reparaturangebote'),
+      title: const BrandLogo(height: 26),
       actions: [
         IconButton(
           tooltip: 'Preisliste',
@@ -212,10 +217,7 @@ class _OfferCard extends StatelessWidget {
         scheme.secondaryContainer,
         scheme.onSecondaryContainer,
       ),
-      OfferStatus.accepted => (
-        scheme.primaryContainer,
-        scheme.onPrimaryContainer,
-      ),
+      OfferStatus.accepted => (scheme.primary, scheme.onPrimary),
       OfferStatus.declined => (scheme.errorContainer, scheme.onErrorContainer),
     };
     final today = DateUtils.dateOnly(DateTime.now());

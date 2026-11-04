@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
 
+import 'catalog.dart';
 import 'dialogs.dart';
 import 'format.dart';
 import 'models.dart';
@@ -74,7 +75,14 @@ class _OfferPageState extends State<OfferPage> {
 
   Future<void> _save({bool close = true}) async {
     setState(() => _saving = true);
-    await widget.store.saveOffer(_collect().copy());
+    final offer = _collect().copy();
+    await widget.store.saveOffer(offer);
+    if (offer.lines.any((l) => l.sku.isNotEmpty)) {
+      await widget.store.rememberPartPrices(
+        offer.lines,
+        catalogPriceOf: await catalogPriceLookup(),
+      );
+    }
     if (!mounted) return;
     setState(() {
       _saving = false;
@@ -116,6 +124,36 @@ class _OfferPageState extends State<OfferPage> {
         _offer.lines.addAll(p.toLines(_settings.hourlyRateCents));
       }
     });
+  }
+
+  Future<void> _addFromCatalog() async {
+    final store = widget.store;
+    bool isDemo(CatalogProduct p) =>
+        p.demoPrice && store.partPriceOverride(p.sku) <= 0;
+    final product = await showCatalogPicker(
+      context,
+      priceOf: store.priceFor,
+      isDemoPrice: isDemo,
+      currency: _settings.currency,
+    );
+    if (product == null || !mounted) return;
+    final line = await showLineDialog(
+      context,
+      isNew: true,
+      priceNote: isDemo(product)
+          ? 'Demopreis aus dem Katalog, bitte prüfen'
+          : null,
+      line: OfferLine(
+        kind: LineKind.part,
+        description: product.name,
+        quantity: 1,
+        unitPriceCents: store.priceFor(product),
+        sku: product.sku,
+      ),
+      hourlyRateCents: _settings.hourlyRateCents,
+      currency: _settings.currency,
+    );
+    if (line != null) _change(() => _offer.lines.add(line));
   }
 
   Future<void> _pickValidUntil() async {
@@ -328,7 +366,8 @@ class _OfferPageState extends State<OfferPage> {
                     padding: EdgeInsets.symmetric(vertical: 8),
                     child: Text(
                       'Noch keine Positionen. Reparaturen aus der Preisliste '
-                      'wählen oder Teile und Arbeit einzeln erfassen.',
+                      'oder Teile aus dem Katalog wählen, oder Teile und '
+                      'Arbeit einzeln erfassen.',
                     ),
                   ),
                 for (var i = 0; i < _offer.lines.length; i++)
@@ -347,6 +386,11 @@ class _OfferPageState extends State<OfferPage> {
                       onPressed: _addFromPriceList,
                       icon: const Icon(Icons.list_alt),
                       label: const Text('Aus Preisliste'),
+                    ),
+                    FilledButton.tonalIcon(
+                      onPressed: _addFromCatalog,
+                      icon: const Icon(Icons.inventory_2_outlined),
+                      label: const Text('Teil aus Katalog'),
                     ),
                     OutlinedButton.icon(
                       onPressed: () => _addLine(LineKind.part),
@@ -466,9 +510,12 @@ class _LineTile extends StatelessWidget {
       ),
       title: Text(line.description),
       subtitle: Text(
-        line.missingPrice
-            ? '${formatLineQuantity(line)} · Preis fehlt'
-            : '${formatLineQuantity(line)} × ${formatMoney(line.unitPriceCents, currency)}',
+        [
+          if (line.sku.isNotEmpty) 'Art.-Nr. ${line.sku}',
+          line.missingPrice
+              ? '${formatLineQuantity(line)} · Preis fehlt'
+              : '${formatLineQuantity(line)} × ${formatMoney(line.unitPriceCents, currency)}',
+        ].join(' · '),
         style: line.missingPrice ? TextStyle(color: error) : null,
       ),
       trailing: Row(
