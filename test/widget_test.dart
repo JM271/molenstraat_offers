@@ -30,6 +30,8 @@ Future<OfferStore> openStore(
 Future<void> settle() => Future<void>.delayed(Duration.zero);
 
 void main() {
+  setUp(resetCatalogCache);
+
   group('money', () {
     test('formats Swiss style', () {
       expect(formatMoney(123456), "CHF 1'234.56");
@@ -436,7 +438,7 @@ void main() {
       expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
     });
 
-    test('own part prices override the catalog price', () async {
+    test('prices in the database replace demo prices', () async {
       final db = FakeFirebaseFirestore();
       final store = await openStore(db);
       const lock = CatalogProduct(
@@ -446,7 +448,18 @@ void main() {
         priceCents: 1990,
         demoPrice: true,
       );
-      int catalogPriceOf(String sku) => sku == lock.sku ? 1990 : 0;
+      const mirror = CatalogProduct(
+        sku: 'RF-M09',
+        name: 'Mirror',
+        category: 'Cockpit',
+        priceCents: 2490,
+        demoPrice: true,
+      );
+      int catalogPriceOf(String sku) => switch (sku) {
+        'OXV8-01E' => 1990,
+        'RF-M09' => 2490,
+        _ => 0,
+      };
       OfferLine part(String sku, int cents) => OfferLine(
         kind: LineKind.part,
         description: sku,
@@ -455,10 +468,11 @@ void main() {
         sku: sku,
       );
       expect(store.priceFor(lock), 1990);
+      expect(store.isDemoPrice(lock), isTrue);
 
       await store.rememberPartPrices([
-        part('OXV8-01E', 1500),
-        part('RF-M09', 0), // no price: ignored
+        part('OXV8-01E', 1500), // changed: saved for everyone
+        part('RF-M09', 2490), // unchanged demo price: stays demo
         OfferLine(
           kind: LineKind.part,
           description: 'Kette',
@@ -466,18 +480,51 @@ void main() {
           unitPriceCents: 3000,
         ),
       ], catalogPriceOf: catalogPriceOf);
-      final reloaded = await openStore(db, uid: 'u2');
-      expect(reloaded.priceFor(lock), 1500);
-      expect(reloaded.partPriceOverride('RF-M09'), 0);
+      final other = await openStore(db, uid: 'u2');
+      expect(other.priceFor(lock), 1500);
+      expect(other.isDemoPrice(lock), isFalse);
+      expect(other.savedPartPrice('RF-M09'), 0);
+      expect(other.isDemoPrice(mirror), isTrue);
 
-      // Going back to the catalog price drops the override, so a later
-      // catalog update (real prices) is used again.
-      await reloaded.rememberPartPrices([
+      // An imported price list applies on every device at once.
+      expect(
+        await other.importPartPrices({'rf-m09': 2200, 'OXV8-01E': 1500}),
+        1,
+      );
+      await settle();
+      expect(store.priceFor(mirror), 2200);
+      expect(store.isDemoPrice(mirror), isFalse);
+      expect(store.savedPartPriceCount, 2);
+
+      // A saved price is kept, even if it equals the old demo price.
+      await store.rememberPartPrices([
         part('OXV8-01E', 1990),
       ], catalogPriceOf: catalogPriceOf);
-      expect(reloaded.partPriceOverride('OXV8-01E'), 0);
       await settle();
-      expect(store.partPriceOverride('OXV8-01E'), 0);
+      expect(other.savedPartPrice('OXV8-01E'), 1990);
+    });
+
+    test('pasted price lists are read from Excel and CSV', () {
+      final known = {'OXV8-30', 'RF-M09', 'KD001', 'OXGT-24'};
+      final result = parsePriceList(
+        'Artikel\tPreis\n'
+        'OXV8-30\t24.90\n'
+        'rf-m09;19,90\n'
+        'KD001\tKENDA tire\tCHF 59.-\n'
+        "OXGT-24,1'190.00\n"
+        '\n'
+        'XX-1\t10\n'
+        'KD002\n',
+        known,
+      );
+      expect(result.prices, {
+        'OXV8-30': 2490,
+        'RF-M09': 1990,
+        'KD001': 5900,
+        'OXGT-24': 119000,
+      });
+      expect(result.unknownSkus, ['XX-1']);
+      expect(result.invalidLines, ['Artikel\tPreis', 'KD002']);
     });
   });
 
@@ -660,5 +707,48 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('1 × CHF 100.00'), findsOneWidget);
     expect(find.text('CHF 100.00'), findsWidgets);
+  });
+
+  testWidgets('import catalog prices in the settings', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final store = await openStore(FakeFirebaseFirestore());
+    await tester.pumpWidget(OffersApp(store: store));
+    await tester.tap(find.byTooltip('Einstellungen'));
+    await tester.pumpAndSettle();
+    final page = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(
+      find.text('Katalogpreise importieren'),
+      200,
+      scrollable: page,
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        '0 von 243 Katalogteilen haben einen gespeicherten Preis. '
+        '243 zeigen noch Demopreise.',
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Katalogpreise importieren'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField).last,
+      'RF-M09\t19.90\nOXV8-30\t22.50\nXX-1\t5',
+    );
+    await tester.pump();
+    expect(find.text('2 Preise erkannt'), findsOneWidget);
+    await tester.tap(find.text('2 Preise importieren'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 Preise gespeichert'), findsOneWidget);
+    expect(store.savedPartPrice('RF-M09'), 1990);
+    expect(
+      find.text(
+        '2 von 243 Katalogteilen haben einen gespeicherten Preis. '
+        '241 zeigen noch Demopreise.',
+      ),
+      findsOneWidget,
+    );
   });
 }

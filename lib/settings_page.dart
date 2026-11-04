@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'catalog.dart';
 import 'dialogs.dart';
+import 'firebase_gate.dart';
 import 'format.dart';
 import 'models.dart';
-import 'firebase_gate.dart';
 import 'offer_store.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -75,6 +76,67 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     if (mounted) Navigator.of(context).pop();
   }
+
+  late final Future<List<CatalogProduct>> _catalog = loadCatalog();
+
+  Future<void> _importPrices(List<CatalogProduct> products) async {
+    final prices = await showPriceImportDialog(
+      context,
+      knownSkus: {
+        for (final p in [...products, ...widget.store.customProducts]) p.sku,
+      },
+      currency: widget.store.settings.currency,
+    );
+    if (prices == null || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final changed = await widget.store.importPartPrices(prices);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            changed == 0
+                ? 'Alle Preise waren schon gespeichert'
+                : '$changed Preise gespeichert',
+          ),
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(cloudError(e))));
+    }
+  }
+
+  Widget _catalogPrices() => FutureBuilder<List<CatalogProduct>>(
+    future: _catalog,
+    builder: (context, snapshot) {
+      final products = snapshot.data;
+      if (products == null) return const SizedBox.shrink();
+      return ListenableBuilder(
+        listenable: widget.store,
+        builder: (context, _) {
+          final priced = products
+              .where((p) => widget.store.savedPartPrice(p.sku) > 0)
+              .length;
+          final demo = products.where(widget.store.isDemoPrice).length;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$priced von ${products.length} Katalogteilen haben einen '
+                'gespeicherten Preis.'
+                '${demo > 0 ? ' $demo zeigen noch Demopreise.' : ''}',
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => _importPrices(products),
+                icon: const Icon(Icons.upload_outlined),
+                label: const Text('Katalogpreise importieren'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -148,6 +210,10 @@ class _SettingsPageState extends State<SettingsPage> {
             onChanged: (v) => setState(() => _pricesIncludeVat = v),
           ),
           const SizedBox(height: 16),
+          Text('Katalogpreise', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          _catalogPrices(),
+          const SizedBox(height: 24),
           Text('Angebot', style: Theme.of(context).textTheme.titleMedium),
           TextFormField(
             controller: _validityDays,

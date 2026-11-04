@@ -149,8 +149,7 @@ class _OfferPageState extends State<OfferPage> {
 
   Future<void> _addFromCatalog() async {
     final store = widget.store;
-    bool isDemo(CatalogProduct p) =>
-        p.demoPrice && store.partPriceOverride(p.sku) <= 0;
+    bool isDemo(CatalogProduct p) => store.isDemoPrice(p);
     final product = await showCatalogPicker(
       context,
       priceOf: store.priceFor,

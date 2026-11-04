@@ -285,45 +285,68 @@ class OfferStore extends ChangeNotifier {
         });
       });
 
-  /// Price set for a catalogue part instead of the catalogue price, 0 if none.
-  int partPriceOverride(String sku) => _partPrices[_skuKey(sku)] ?? 0;
+  /// Price of a catalogue part stored in the shared database (imported or
+  /// remembered from an offer), 0 if there is none.
+  int savedPartPrice(String sku) => _partPrices[_skuKey(sku)] ?? 0;
 
-  /// Price to offer for a catalogue part: the own price if set, otherwise the
-  /// catalogue price.
+  /// Number of SKUs with a price in the shared database.
+  int get savedPartPriceCount => _partPrices.length;
+
+  /// Price to offer for a catalogue part: the price in the shared database
+  /// if there is one, otherwise the price bundled with the app.
   int priceFor(CatalogProduct product) {
-    final own = partPriceOverride(product.sku);
-    return own > 0 ? own : product.priceCents;
+    final saved = savedPartPrice(product.sku);
+    return saved > 0 ? saved : product.priceCents;
   }
 
-  /// Remembers prices of catalogue parts that differ from the catalogue, for
-  /// everyone using the shared database. A price equal to the catalogue price
-  /// clears the override, so a later catalogue update takes effect. Lines
+  /// True while a part only has the bundled demo price.
+  bool isDemoPrice(CatalogProduct product) =>
+      product.demoPrice && savedPartPrice(product.sku) <= 0;
+
+  /// Saves prices of catalogue parts used in an offer to the shared
+  /// database, so every device fills them in next time. An unchanged
+  /// bundled (demo) price is not saved, so it stays marked as demo. Lines
   /// without SKU or without price are ignored.
   Future<void> rememberPartPrices(
     Iterable<OfferLine> lines, {
     required int Function(String sku) catalogPriceOf,
-  }) async {
-    final batch = db.batch();
-    var changed = false;
-    for (final line in lines) {
-      if (line.kind != LineKind.part || line.sku.isEmpty) continue;
-      final price = line.unitPriceCents;
-      if (price <= 0) continue;
-      final key = _skuKey(line.sku);
-      final ref = _partPricesRef.doc(documentId(key));
-      if (price == catalogPriceOf(line.sku)) {
-        if (_partPrices.remove(key) != null) {
-          batch.delete(ref);
-          changed = true;
-        }
-      } else if (_partPrices[key] != price) {
-        _partPrices[key] = price;
-        batch.set(ref, {'sku': key, 'priceCents': price});
-        changed = true;
+  }) => _writePartPrices({
+    for (final line in lines)
+      if (line.kind == LineKind.part &&
+          line.sku.isNotEmpty &&
+          line.unitPriceCents > 0 &&
+          (savedPartPrice(line.sku) > 0 ||
+              line.unitPriceCents != catalogPriceOf(line.sku)))
+        _skuKey(line.sku): line.unitPriceCents,
+  });
+
+  /// Imports a price list (SKU → price in cents) into the shared database.
+  /// Returns how many prices changed.
+  Future<int> importPartPrices(Map<String, int> prices) => _writePartPrices({
+    for (final MapEntry(:key, :value) in prices.entries)
+      if (value > 0) _skuKey(key): value,
+  });
+
+  Future<int> _writePartPrices(Map<String, int> prices) async {
+    final changed = {
+      for (final MapEntry(:key, :value) in prices.entries)
+        if (key.isNotEmpty && _partPrices[key] != value) key: value,
+    };
+    if (changed.isEmpty) return 0;
+    // Firestore allows at most 500 writes per batch.
+    final entries = changed.entries.toList();
+    for (var i = 0; i < entries.length; i += 400) {
+      final batch = db.batch();
+      for (final e in entries.skip(i).take(400)) {
+        batch.set(_partPricesRef.doc(documentId(e.key)), {
+          'sku': e.key,
+          'priceCents': e.value,
+        });
       }
+      await batch.commit();
     }
-    if (!changed) return;
+    _partPrices.addAll(changed);
     notifyListeners();
-    await batch.commit();
+    return changed.length;
   }
 }
