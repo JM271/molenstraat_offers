@@ -1,0 +1,512 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:printing/printing.dart';
+
+import 'dialogs.dart';
+import 'format.dart';
+import 'models.dart';
+import 'offer_pdf.dart';
+import 'offer_store.dart';
+
+class OfferPage extends StatefulWidget {
+  const OfferPage({super.key, required this.store, required this.offer});
+
+  final OfferStore store;
+
+  /// A working copy; it is only written to the store on save.
+  final Offer offer;
+
+  @override
+  State<OfferPage> createState() => _OfferPageState();
+}
+
+enum _Action { share, print, copy, delete }
+
+class _OfferPageState extends State<OfferPage> {
+  late final Offer _offer = widget.offer;
+  bool get _isNew => !widget.store.offers.any((o) => o.id == _offer.id);
+  late final _customerName = _controller(_offer.customerName);
+  late final _customerPhone = _controller(_offer.customerPhone);
+  late final _customerEmail = _controller(_offer.customerEmail);
+  late final _bikeModel = _controller(_offer.bikeModel);
+  late final _frameNumber = _controller(_offer.frameNumber);
+  late final _problem = _controller(_offer.problem);
+  late final _notes = _controller(_offer.notes);
+  bool _dirty = false;
+  bool _saving = false;
+
+  ShopSettings get _settings => widget.store.settings;
+
+  TextEditingController _controller(String text) =>
+      TextEditingController(text: text)..addListener(() {
+        if (!_dirty) setState(() => _dirty = true);
+      });
+
+  @override
+  void dispose() {
+    for (final c in [
+      _customerName,
+      _customerPhone,
+      _customerEmail,
+      _bikeModel,
+      _frameNumber,
+      _problem,
+      _notes,
+    ]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _change(VoidCallback fn) => setState(() {
+    fn();
+    _dirty = true;
+  });
+
+  Offer _collect() => _offer
+    ..customerName = _customerName.text.trim()
+    ..customerPhone = _customerPhone.text.trim()
+    ..customerEmail = _customerEmail.text.trim()
+    ..bikeModel = _bikeModel.text.trim()
+    ..frameNumber = _frameNumber.text.trim()
+    ..problem = _problem.text.trim()
+    ..notes = _notes.text.trim();
+
+  Future<void> _save({bool close = true}) async {
+    setState(() => _saving = true);
+    await widget.store.saveOffer(_collect().copy());
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      _dirty = false;
+    });
+    if (close) Navigator.of(context).pop();
+  }
+
+  Future<void> _addLine(LineKind kind) async {
+    final line = await showLineDialog(
+      context,
+      kind: kind,
+      hourlyRateCents: _settings.hourlyRateCents,
+      currency: _settings.currency,
+    );
+    if (line != null) _change(() => _offer.lines.add(line));
+  }
+
+  Future<void> _editLine(int index) async {
+    final line = await showLineDialog(
+      context,
+      line: _offer.lines[index],
+      hourlyRateCents: _settings.hourlyRateCents,
+      currency: _settings.currency,
+    );
+    if (line != null) _change(() => _offer.lines[index] = line);
+  }
+
+  Future<void> _addFromPriceList() async {
+    final presets = await showPresetPicker(
+      context,
+      widget.store.presets,
+      hourlyRateCents: _settings.hourlyRateCents,
+      currency: _settings.currency,
+    );
+    if (presets == null || presets.isEmpty) return;
+    _change(() {
+      for (final p in presets) {
+        _offer.lines.addAll(p.toLines(_settings.hourlyRateCents));
+      }
+    });
+  }
+
+  Future<void> _pickValidUntil() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _offer.validUntil,
+      firstDate: DateTime(_offer.createdAt.year - 1),
+      lastDate: DateTime(_offer.createdAt.year + 2),
+    );
+    if (picked != null) _change(() => _offer.validUntil = picked);
+  }
+
+  Future<void> _onAction(_Action action) async {
+    final offer = _collect();
+    switch (action) {
+      case _Action.share:
+        if (_dirty) await _save(close: false);
+        final bytes = await buildOfferPdf(offer, _settings);
+        await Printing.sharePdf(bytes: bytes, filename: offerFileName(offer));
+        if (offer.status == OfferStatus.draft && mounted) {
+          final markSent = await confirm(
+            context,
+            title: 'Als gesendet markieren?',
+            message:
+                'Angebot ${offer.number} wurde geteilt. Status auf '
+                '„Gesendet“ setzen?',
+            action: 'Gesendet',
+          );
+          if (markSent) {
+            _change(() => _offer.status = OfferStatus.sent);
+            await _save(close: false);
+          }
+        }
+      case _Action.print:
+        await Printing.layoutPdf(
+          name: offerFileName(offer),
+          onLayout: (_) => buildOfferPdf(offer, _settings),
+        );
+      case _Action.copy:
+        await Clipboard.setData(
+          ClipboardData(text: offerText(offer, _settings)),
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('Text kopiert')));
+        }
+      case _Action.delete:
+        final ok = await confirm(
+          context,
+          title: 'Angebot löschen?',
+          message: 'Angebot ${offer.number} wird endgültig gelöscht.',
+          action: 'Löschen',
+        );
+        if (!ok) return;
+        await widget.store.deleteOffer(offer.id);
+        if (mounted) Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final totals = computeTotals(
+      _offer.lines,
+      vatRate: _settings.vatRate,
+      pricesIncludeVat: _settings.pricesIncludeVat,
+    );
+    final missingPrices = _offer.lines.where((l) => l.missingPrice).length;
+    String money(int cents) => formatMoney(cents, _settings.currency);
+    final theme = Theme.of(context);
+
+    return PopScope(
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final discard = await confirm(
+          context,
+          title: 'Änderungen verwerfen?',
+          message: 'Das Angebot hat ungespeicherte Änderungen.',
+          action: 'Verwerfen',
+        );
+        if (discard && context.mounted) {
+          setState(() => _dirty = false);
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_offer.number),
+          actions: [
+            PopupMenuButton<_Action>(
+              onSelected: _onAction,
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: _Action.share,
+                  child: ListTile(
+                    leading: Icon(Icons.share),
+                    title: Text('PDF teilen'),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: _Action.print,
+                  child: ListTile(
+                    leading: Icon(Icons.print),
+                    title: Text('Drucken / Vorschau'),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: _Action.copy,
+                  child: ListTile(
+                    leading: Icon(Icons.copy),
+                    title: Text('Als Text kopieren'),
+                  ),
+                ),
+                if (!_isNew)
+                  const PopupMenuItem(
+                    value: _Action.delete,
+                    child: ListTile(
+                      leading: Icon(Icons.delete_outline),
+                      title: Text('Löschen'),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 100),
+          children: [
+            _Section(
+              title: 'Status',
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final s in OfferStatus.values)
+                      ChoiceChip(
+                        label: Text(s.label),
+                        selected: _offer.status == s,
+                        onSelected: (_) => _change(() => _offer.status = s),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    Text('Erstellt ${formatDate(_offer.createdAt)}'),
+                    TextButton.icon(
+                      onPressed: _pickValidUntil,
+                      icon: const Icon(Icons.event, size: 18),
+                      label: Text(
+                        'Gültig bis ${formatDate(_offer.validUntil)}',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            _Section(
+              title: 'Kunde',
+              children: [
+                TextField(
+                  controller: _customerName,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(labelText: 'Name'),
+                ),
+                TextField(
+                  controller: _customerPhone,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'Telefon'),
+                ),
+                TextField(
+                  controller: _customerEmail,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: 'E-Mail'),
+                ),
+              ],
+            ),
+            _Section(
+              title: 'Fahrrad',
+              children: [
+                TextField(
+                  controller: _bikeModel,
+                  decoration: const InputDecoration(labelText: 'Modell'),
+                ),
+                TextField(
+                  controller: _frameNumber,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: const InputDecoration(labelText: 'Rahmennummer'),
+                ),
+                TextField(
+                  controller: _problem,
+                  minLines: 2,
+                  maxLines: 6,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: 'Befund / Kundenwunsch',
+                    hintText: 'z.B. Bremse hinten schleift, Kette rostig',
+                  ),
+                ),
+              ],
+            ),
+            _Section(
+              title: 'Positionen',
+              children: [
+                if (_offer.lines.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'Noch keine Positionen. Reparaturen aus der Preisliste '
+                      'wählen oder Teile und Arbeit einzeln erfassen.',
+                    ),
+                  ),
+                for (var i = 0; i < _offer.lines.length; i++)
+                  _LineTile(
+                    line: _offer.lines[i],
+                    currency: _settings.currency,
+                    onTap: () => _editLine(i),
+                    onDelete: () => _change(() => _offer.lines.removeAt(i)),
+                  ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton.tonalIcon(
+                      onPressed: _addFromPriceList,
+                      icon: const Icon(Icons.list_alt),
+                      label: const Text('Aus Preisliste'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => _addLine(LineKind.part),
+                      icon: const Icon(Icons.settings_outlined),
+                      label: const Text('Teil'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => _addLine(LineKind.labour),
+                      icon: const Icon(Icons.build_outlined),
+                      label: const Text('Arbeit'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            _Section(
+              title: 'Summe',
+              children: [
+                if (missingPrices > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      missingPrices == 1
+                          ? '1 Position hat noch keinen Preis.'
+                          : '$missingPrices Positionen haben noch keinen Preis.',
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
+                  ),
+                _SumRow('Material', money(totals.partsCents)),
+                _SumRow('Arbeit', money(totals.labourCents)),
+                if (totals.vatRate > 0 && !totals.pricesIncludeVat)
+                  _SumRow(
+                    'MwSt ${formatVatRate(totals.vatRate)}%',
+                    money(totals.vatCents),
+                  ),
+                const Divider(),
+                _SumRow('Total', money(totals.totalCents), bold: true),
+                if (totals.vatRate > 0 && totals.pricesIncludeVat)
+                  _SumRow(
+                    'inkl. ${formatVatRate(totals.vatRate)}% MwSt',
+                    money(totals.vatCents),
+                  ),
+              ],
+            ),
+            _Section(
+              title: 'Bemerkungen',
+              children: [
+                TextField(
+                  controller: _notes,
+                  minLines: 2,
+                  maxLines: 6,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    hintText: 'z.B. Teile bestellt, Lieferzeit ca. 1 Woche',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: _saving ? null : () => _save(),
+          icon: const Icon(Icons.check),
+          label: const Text('Speichern'),
+        ),
+      ),
+    );
+  }
+}
+
+class _Section extends StatelessWidget {
+  const _Section({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    margin: const EdgeInsets.symmetric(vertical: 6),
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          ...children,
+        ],
+      ),
+    ),
+  );
+}
+
+class _LineTile extends StatelessWidget {
+  const _LineTile({
+    required this.line,
+    required this.currency,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  final OfferLine line;
+  final String currency;
+  final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final error = Theme.of(context).colorScheme.error;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      onTap: onTap,
+      leading: Icon(
+        line.kind == LineKind.labour
+            ? Icons.build_outlined
+            : Icons.settings_outlined,
+      ),
+      title: Text(line.description),
+      subtitle: Text(
+        line.missingPrice
+            ? '${formatLineQuantity(line)} · Preis fehlt'
+            : '${formatLineQuantity(line)} × ${formatMoney(line.unitPriceCents, currency)}',
+        style: line.missingPrice ? TextStyle(color: error) : null,
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(formatMoney(line.totalCents, currency)),
+          IconButton(
+            tooltip: 'Position entfernen',
+            icon: const Icon(Icons.close),
+            onPressed: onDelete,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SumRow extends StatelessWidget {
+  const _SumRow(this.label, this.value, {this.bold = false});
+
+  final String label;
+  final String value;
+  final bool bold;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = bold
+        ? Theme.of(context).textTheme.titleMedium
+        : Theme.of(context).textTheme.bodyMedium;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: style)),
+          const SizedBox(width: 12),
+          Text(value, style: style),
+        ],
+      ),
+    );
+  }
+}
