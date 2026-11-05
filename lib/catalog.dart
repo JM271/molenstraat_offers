@@ -96,7 +96,12 @@ class _CatalogPickerState extends State<_CatalogPicker> {
   late final Future<List<CatalogProduct>> _products = loadCatalog().then((
     bundled,
   ) {
-    final known = {for (final p in bundled) p.sku.toUpperCase()};
+    final known = {
+      for (final p in bundled) ...[
+        p.sku.toUpperCase(),
+        if (p.supplierSku.isNotEmpty) p.supplierSku.toUpperCase(),
+      ],
+    };
     return [
       ...bundled,
       for (final p in widget.extraProducts)

@@ -478,7 +478,7 @@ void main() {
       // test's zone and never resolve inside the widget test's fake async.
       final data = await rootBundle.load(catalogAsset);
       final products = parseCatalog(utf8.decode(data.buffer.asUint8List()));
-      expect(products, hasLength(297));
+      expect(products, hasLength(279));
       expect(products.map((p) => p.sku).toSet(), hasLength(products.length));
       expect(catalogCategories(products), contains('Brakes'));
       for (final p in products.where((p) => p.imageAsset.isNotEmpty)) {
@@ -489,16 +489,27 @@ void main() {
       final own = products.where((p) => p.sku.startsWith('MS-')).toList();
       expect(own, hasLength(54));
       expect(own.where((p) => p.priceCents <= 0), isEmpty);
-      expect(products.where((p) => p.hasListPrice), hasLength(54 + 19));
+      // OXV8-02 stays: it is the supplier part of two products.
+      expect(products.where((p) => p.hasListPrice), hasLength(54 + 1));
       expect(products.first.category, 'Fatbikes');
       final dapper = products.firstWhere((p) => p.sku == 'MS-V8P-DP001');
       expect(dapper.priceCents, 249000);
       final disc = products.firstWhere((p) => p.sku == 'MS-SP-2005');
       expect(disc.priceCents, 990);
       expect(disc.imageAsset, 'assets/products/oxv8-17a.png');
-      // The supplier part behind a listed product has the same price.
-      final supplierDisc = products.firstWhere((p) => p.sku == 'OXV8-17A');
-      expect(supplierDisc.priceCents, 990);
+      // The supplier part behind a listed product is not listed twice;
+      // its number finds the product.
+      expect(products.where((p) => p.sku == 'OXV8-17A'), isEmpty);
+      expect(disc.supplierSku, 'OXV8-17A');
+      expect(disc.matches('oxv8-17a'), isTrue);
+      expect(products.where((p) => p.matches('OXV8-05')).map((p) => p.sku), [
+        'MS-SP-3009',
+      ]);
+      // The two Mini MS versions can be told apart.
+      expect(
+        products.where((p) => p.sku == 'MS-FB-MIN001').single.name,
+        contains('250W'),
+      );
       // Supplier parts not in the list have no price.
       final mirror = products.firstWhere((p) => p.sku == 'RF-M09');
       expect(mirror.priceCents, 0);
@@ -589,8 +600,8 @@ void main() {
       final catalog = parseCatalog(utf8.decode(data.buffer.asUint8List()));
       final db = FakeFirebaseFirestore();
       const prices = 'workshops/molenstraat/partPrices';
-      // An old price of a listed supplier part and one of another part.
-      await db.doc('$prices/a').set({'sku': 'OXV8-17A', 'priceCents': 1500});
+      // An old price of a listed product and one of another part.
+      await db.doc('$prices/a').set({'sku': 'MS-SP-2005', 'priceCents': 1500});
       await db.doc('$prices/b').set({'sku': 'RF-M09', 'priceCents': 1990});
       // A stored price list: chain still at the old demo price, tyre
       // changed by hand.
@@ -617,15 +628,13 @@ void main() {
       });
       final store = await openStore(db);
       final disc = catalog.firstWhere((p) => p.sku == 'MS-SP-2005');
-      final supplierDisc = catalog.firstWhere((p) => p.sku == 'OXV8-17A');
       // The list price wins in the app even before the database is synced.
-      expect(store.priceFor(supplierDisc), 990);
+      expect(store.priceFor(disc), 990);
 
       final listed = catalog.where((p) => p.hasListPrice).length;
-      expect(listed, 54 + 19);
+      expect(listed, 54 + 1); // with OXV8-02
       expect(await store.syncListPrices(catalog), listed);
       final other = await openStore(db, uid: 'u2');
-      expect(other.savedPartPrice('OXV8-17A'), 990);
       expect(other.savedPartPrice('MS-SP-2005'), 990);
       expect(other.savedPartPrice('MS-V8P-DP001'), 249000);
       expect(other.savedPartPrice('RF-M09'), 1990); // not in the list
@@ -905,7 +914,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        '73 von 297 Katalogteilen haben einen Preis aus der Produktliste, '
+        '55 von 279 Katalogteilen haben einen Preis aus der Produktliste, '
         '0 einen gespeicherten Preis. 224 haben noch keinen Preis.',
       ),
       findsOneWidget,
@@ -930,7 +939,7 @@ void main() {
     expect(store.savedPartPrice('RF-M09'), 1990);
     expect(
       find.text(
-        '73 von 297 Katalogteilen haben einen Preis aus der Produktliste, '
+        '55 von 279 Katalogteilen haben einen Preis aus der Produktliste, '
         '2 einen gespeicherten Preis. 222 haben noch keinen Preis.',
       ),
       findsOneWidget,

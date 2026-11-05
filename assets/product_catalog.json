@@ -15,7 +15,7 @@
   },
   {
     "sku": "MS-FB-MIN001",
-    "name": "Mini MS Fatbike",
+    "name": "Fatbike Mini MS - 250W, start assist 6km/h",
     "category": "Fatbikes",
     "imageAsset": "",
     "priceCents": 185000
@@ -36,7 +36,7 @@
   },
   {
     "sku": "MS-V8UM-MS002",
-    "name": "Fatbike Mini MS",
+    "name": "Fatbike Mini MS - 350W, throttle 25km/h",
     "category": "Fatbikes",
     "imageAsset": "",
     "priceCents": 185000
@@ -426,14 +426,6 @@
     "page": 1
   },
   {
-    "sku": "OXV8-01",
-    "name": "48V 15Ah battery pack with bracket for V8/C80",
-    "category": "Electrics",
-    "imageAsset": "assets/products/oxv8-01.png",
-    "page": 1,
-    "priceCents": 36000
-  },
-  {
     "sku": "OXV8-01B",
     "name": "36V 10.4A battery pack with bracket- V8 mini",
     "category": "Electrics",
@@ -596,22 +588,6 @@
     "page": 3
   },
   {
-    "sku": "OXV8-04C",
-    "name": "Modified twist throttle with handle grip V8&V20",
-    "category": "Cockpit",
-    "imageAsset": "assets/products/oxv8-04c.png",
-    "page": 3,
-    "priceCents": 4900
-  },
-  {
-    "sku": "OXV8-05",
-    "name": "3 in 1 switch",
-    "category": "Electrics",
-    "imageAsset": "assets/products/oxv8-05.png",
-    "page": 3,
-    "priceCents": 4500
-  },
-  {
     "sku": "OXV8-06",
     "name": "Right Speed Shifter Thumb SHIMANO 7 Gears",
     "category": "Drivetrain",
@@ -624,14 +600,6 @@
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-06b.png",
     "page": 3
-  },
-  {
-    "sku": "OXV8-07",
-    "name": "Front light 3 Pin",
-    "category": "Electrics",
-    "imageAsset": "assets/products/oxv8-07.png",
-    "page": 3,
-    "priceCents": 6500
   },
   {
     "sku": "OXV8-07B",
@@ -676,27 +644,11 @@
     "page": 4
   },
   {
-    "sku": "OXV8-09B",
-    "name": "Pedal assist sensor",
-    "category": "Drivetrain",
-    "imageAsset": "assets/products/oxv8-09b.png",
-    "page": 4,
-    "priceCents": 1490
-  },
-  {
     "sku": "OXV8-09C",
     "name": "Pedal assist sensor(old model)",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-09c.png",
     "page": 4
-  },
-  {
-    "sku": "OXV8-10",
-    "name": "Waterproof Main cable old model",
-    "category": "Electrics",
-    "imageAsset": "assets/products/oxv8-10.png",
-    "page": 4,
-    "priceCents": 6500
   },
   {
     "sku": "OXV8-10B",
@@ -725,14 +677,6 @@
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-12.png",
     "page": 4
-  },
-  {
-    "sku": "OXV8-13",
-    "name": "Zoom full set hydraulic oil brake caliper&right and left brake lever",
-    "category": "Brakes",
-    "imageAsset": "assets/products/oxv8-13.png",
-    "page": 4,
-    "priceCents": 13900
   },
   {
     "sku": "OXV8-13B",
@@ -789,14 +733,6 @@
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-16.png",
     "page": 5
-  },
-  {
-    "sku": "OXV8-17A",
-    "name": "Brake disc 160mm Compaitble for OXV8-14& OXV8-15",
-    "category": "Brakes",
-    "imageAsset": "assets/products/oxv8-17a.png",
-    "page": 5,
-    "priceCents": 990
   },
   {
     "sku": "OXV8-17B",
@@ -862,27 +798,11 @@
     "page": 6
   },
   {
-    "sku": "OXV8-25",
-    "name": "Pedal",
-    "category": "Drivetrain",
-    "imageAsset": "assets/products/oxv8-25.png",
-    "page": 6,
-    "priceCents": 1200
-  },
-  {
     "sku": "OXV8-25B",
     "name": "Rear pedal",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-25b.png",
     "page": 6
-  },
-  {
-    "sku": "OXV8-26",
-    "name": "Kickstand V8",
-    "category": "Other",
-    "imageAsset": "assets/products/oxv8-26.png",
-    "page": 6,
-    "priceCents": 3900
   },
   {
     "sku": "OXV8-26B",
@@ -904,14 +824,6 @@
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-27j.png",
     "page": 6
-  },
-  {
-    "sku": "OXV8-27D",
-    "name": "20inch motor wheel 48V-500W Motor line on the right side-Black plug(GT)",
-    "category": "Wheels & tyres",
-    "imageAsset": "assets/products/oxv8-27d.png",
-    "page": 7,
-    "priceCents": 48900
   },
   {
     "sku": "OXV8-40B",
@@ -1026,22 +938,6 @@
     "page": 8
   },
   {
-    "sku": "OXV8-30",
-    "name": "Chain",
-    "category": "Drivetrain",
-    "imageAsset": "assets/products/oxv8-30.png",
-    "page": 8,
-    "priceCents": 2500
-  },
-  {
-    "sku": "OXV8-31",
-    "name": "Rear Derailleur SHIMANO",
-    "category": "Drivetrain",
-    "imageAsset": "assets/products/oxv8-31.png",
-    "page": 8,
-    "priceCents": 2100
-  },
-  {
     "sku": "OXV8-32",
     "name": "Freewheel",
     "category": "Wheels & tyres",
@@ -1049,35 +945,11 @@
     "page": 8
   },
   {
-    "sku": "OXV8-33",
-    "name": "Original 54.6V 2A charger DC 5.5*2.1",
-    "category": "Electrics",
-    "imageAsset": "assets/products/oxv8-33.png",
-    "page": 8,
-    "priceCents": 6500
-  },
-  {
-    "sku": "OXV8-33B",
-    "name": "Original 42V 2A charger DC 5.5*2.1 V8 mini",
-    "category": "Electrics",
-    "imageAsset": "assets/products/oxv8-33b.png",
-    "page": 8,
-    "priceCents": 6500
-  },
-  {
     "sku": "OXV8-34",
     "name": "Aluminium crankset for V8",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-34.png",
     "page": 8
-  },
-  {
-    "sku": "OXV8-34B",
-    "name": "Prowheel Aluminium crankset for V8",
-    "category": "Wheels & tyres",
-    "imageAsset": "assets/products/oxv8-34b.png",
-    "page": 8,
-    "priceCents": 4900
   },
   {
     "sku": "OXV8-35",
@@ -1120,14 +992,6 @@
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-37.png",
     "page": 9
-  },
-  {
-    "sku": "OXV8-38",
-    "name": "Chain cover",
-    "category": "Drivetrain",
-    "imageAsset": "assets/products/oxv8-38.png",
-    "page": 9,
-    "priceCents": 1200
   },
   {
     "sku": "OXV8-44",
@@ -1996,14 +1860,6 @@
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/kd001.png",
     "page": 19
-  },
-  {
-    "sku": "KD002",
-    "name": "20*3.5/4.0 Inner tube KENDA",
-    "category": "Wheels & tyres",
-    "imageAsset": "assets/products/kd002.png",
-    "page": 20,
-    "priceCents": 2200
   },
   {
     "sku": "KD014",

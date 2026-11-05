@@ -113,7 +113,9 @@ class CatalogProduct {
 
   /// Supplier article number of a Molenstraat product (bexio "Code produit
   /// (fournisseur)"), empty if unknown or shared by several products. The
-  /// Inventory app may keep the product's stock under this number.
+  /// supplier part itself is not listed separately; searching for this
+  /// number finds the product, and the Inventory app may keep the product's
+  /// stock under it.
   final String supplierSku;
 
   /// True for products with a price in the Molenstraat product list: it is
@@ -131,7 +133,9 @@ class CatalogProduct {
 
   bool matches(String query) {
     final q = query.toLowerCase();
-    return sku.toLowerCase().contains(q) || name.toLowerCase().contains(q);
+    return sku.toLowerCase().contains(q) ||
+        supplierSku.toLowerCase().contains(q) ||
+        name.toLowerCase().contains(q);
   }
 }
 

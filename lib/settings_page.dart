@@ -87,7 +87,10 @@ class _SettingsPageState extends State<SettingsPage> {
       },
       listSkus: {
         for (final p in products)
-          if (p.hasListPrice) p.sku,
+          if (p.hasListPrice) ...[
+            p.sku,
+            if (p.supplierSku.isNotEmpty) p.supplierSku,
+          ],
       },
       currency: widget.store.settings.currency,
     );
