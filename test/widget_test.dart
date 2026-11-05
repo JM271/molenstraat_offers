@@ -478,30 +478,29 @@ void main() {
       // test's zone and never resolve inside the widget test's fake async.
       final data = await rootBundle.load(catalogAsset);
       final products = parseCatalog(utf8.decode(data.buffer.asUint8List()));
-      expect(products, hasLength(279));
+      // Only the Molenstraat product list, all with a price.
+      expect(products, hasLength(54));
+      expect(products.where((p) => !p.sku.startsWith('MS-')), isEmpty);
+      expect(products.where((p) => !p.hasListPrice), isEmpty);
       expect(products.map((p) => p.sku).toSet(), hasLength(products.length));
-      expect(catalogCategories(products), contains('Brakes'));
+      expect(catalogCategories(products), [
+        'Fatbikes',
+        'Spare Parts',
+        'Accessoires',
+      ]);
       for (final p in products.where((p) => p.imageAsset.isNotEmpty)) {
         final data = await rootBundle.load(p.imageAsset);
         expect(data.lengthInBytes, greaterThan(0), reason: p.imageAsset);
       }
-      // Prices come only from the Molenstraat product list.
-      final own = products.where((p) => p.sku.startsWith('MS-')).toList();
-      expect(own, hasLength(54));
-      expect(own.where((p) => p.priceCents <= 0), isEmpty);
-      // OXV8-02 stays: it is the supplier part of two products.
-      expect(products.where((p) => p.hasListPrice), hasLength(54 + 1));
-      expect(products.first.category, 'Fatbikes');
       final dapper = products.firstWhere((p) => p.sku == 'MS-V8P-DP001');
       expect(dapper.priceCents, 249000);
       final disc = products.firstWhere((p) => p.sku == 'MS-SP-2005');
       expect(disc.priceCents, 990);
       expect(disc.imageAsset, 'assets/products/oxv8-17a.png');
-      // The supplier part behind a listed product is not listed twice;
-      // its number finds the product.
-      expect(products.where((p) => p.sku == 'OXV8-17A'), isEmpty);
+      // The supplier number finds the product.
       expect(disc.supplierSku, 'OXV8-17A');
       expect(disc.matches('oxv8-17a'), isTrue);
+      expect(disc.matches('brake disc'), isTrue);
       expect(products.where((p) => p.matches('OXV8-05')).map((p) => p.sku), [
         'MS-SP-3009',
       ]);
@@ -510,12 +509,6 @@ void main() {
         products.where((p) => p.sku == 'MS-FB-MIN001').single.name,
         contains('250W'),
       );
-      // Supplier parts not in the list have no price.
-      final mirror = products.firstWhere((p) => p.sku == 'RF-M09');
-      expect(mirror.priceCents, 0);
-      expect(mirror.hasListPrice, isFalse);
-      expect(mirror.matches('rf-m'), isTrue);
-      expect(mirror.matches('mirror'), isTrue);
     });
 
     test('article number is kept on the line and in the exports', () async {
@@ -632,7 +625,7 @@ void main() {
       expect(store.priceFor(disc), 990);
 
       final listed = catalog.where((p) => p.hasListPrice).length;
-      expect(listed, 54 + 1); // with OXV8-02
+      expect(listed, 54);
       expect(await store.syncListPrices(catalog), listed);
       final other = await openStore(db, uid: 'u2');
       expect(other.savedPartPrice('MS-SP-2005'), 990);
@@ -706,10 +699,19 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    final store = await openStore(FakeFirebaseFirestore());
+    final db = FakeFirebaseFirestore();
+    // A product added in the Inventory app, without list price.
+    await db.doc('workshops/molenstraat/catalog/x').set({
+      'id': 'custom-1',
+      'name': 'Spezialschraube',
+      'category': 'Other',
+      'sku': 'SPZ-1',
+      'imageAsset': '',
+    });
+    final store = await openStore(db);
     await tester.pumpWidget(OffersApp(store: store));
 
-    Future<void> pickMirror() async {
+    Future<void> pick(String query, String name) async {
       await tester.tap(find.text('Neues Angebot'));
       await tester.pumpAndSettle();
       final page = find
@@ -727,53 +729,51 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Teil aus Katalog'));
       await tester.pumpAndSettle();
-      final cockpit = find.widgetWithText(ChoiceChip, 'Cockpit');
-      await tester.scrollUntilVisible(
-        cockpit,
-        150,
-        // The category chips: the picker's horizontal list, on top of the
-        // offer page.
-        scrollable: find
-            .byWidgetPredicate(
-              (w) => w is Scrollable && w.axisDirection == AxisDirection.right,
-            )
-            .last,
-      );
-      await tester.tap(cockpit);
       await tester.enterText(
         find.widgetWithText(TextField, 'Teil oder Artikelnummer suchen'),
-        'rf-m09',
+        query,
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.textContaining('rearview mirror'));
+      await tester.tap(find.text(name));
       await tester.pumpAndSettle();
-      expect(find.text('Art.-Nr. RF-M09'), findsOneWidget);
     }
 
-    // A part without list price asks for a price.
-    await pickMirror();
-    expect(
-      find.text('Nicht in der Produktliste, bitte Preis eintragen'),
-      findsOneWidget,
-    );
+    Future<void> close() async {
+      await tester.tap(find.text('Übernehmen'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Speichern'));
+      await tester.pumpAndSettle();
+    }
+
+    const hint = 'Nicht in der Produktliste, bitte Preis eintragen';
+    // A product of the list comes with its list price; the supplier number
+    // finds it.
+    await pick('oxv8-05', '3 in 1 switch');
+    expect(find.text('Art.-Nr. MS-SP-3009'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, '45.00'), findsOneWidget);
+    expect(find.text(hint), findsNothing);
+    // A different price applies to this offer only.
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Stückpreis (CHF)'),
-      '19.90',
+      '39.00',
     );
-    await tester.tap(find.text('Übernehmen'));
-    await tester.pumpAndSettle();
-    expect(find.text('Art.-Nr. RF-M09 · 1 Stk. × CHF 19.90'), findsOneWidget);
-    await tester.tap(find.text('Speichern'));
-    await tester.pumpAndSettle();
-    expect(store.offers.single.lines.single.sku, 'RF-M09');
+    await close();
+    expect(store.offers.single.lines.single.unitPriceCents, 3900);
+    expect(store.savedPartPrice('MS-SP-3009'), 0);
 
-    // The next offer fills in the entered price.
-    await pickMirror();
-    expect(find.widgetWithText(TextFormField, '19.90'), findsOneWidget);
-    expect(
-      find.text('Nicht in der Produktliste, bitte Preis eintragen'),
-      findsNothing,
+    // A product without list price asks for a price, which is remembered.
+    await pick('spz', 'Spezialschraube');
+    expect(find.text(hint), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Stückpreis (CHF)'),
+      '12.50',
     );
+    await close();
+    expect(store.savedPartPrice('SPZ-1'), 1250);
+
+    await pick('spz', 'Spezialschraube');
+    expect(find.widgetWithText(TextFormField, '12.50'), findsOneWidget);
+    expect(find.text(hint), findsNothing);
   });
 
   testWidgets('PDF preview saves a new offer first', (tester) async {
@@ -901,7 +901,15 @@ void main() {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    final store = await openStore(FakeFirebaseFirestore());
+    final db = FakeFirebaseFirestore();
+    await db.doc('workshops/molenstraat/catalog/x').set({
+      'id': 'custom-1',
+      'name': 'Spezialschraube',
+      'category': 'Other',
+      'sku': 'SPZ-1',
+      'imageAsset': '',
+    });
+    final store = await openStore(db);
     await tester.pumpWidget(OffersApp(store: store));
     await tester.tap(find.byTooltip('Einstellungen'));
     await tester.pumpAndSettle();
@@ -914,8 +922,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        '55 von 279 Katalogteilen haben einen Preis aus der Produktliste, '
-        '0 einen gespeicherten Preis. 224 haben noch keinen Preis.',
+        '54 von 54 Katalogteilen haben einen Preis aus der Produktliste, '
+        '0 einen gespeicherten Preis.',
       ),
       findsOneWidget,
     );
@@ -923,26 +931,21 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byType(TextField).last,
-      'RF-M09\t19.90\nKD001\t55.00\nOXV8-30\t22.50\nXX-1\t5',
+      'SPZ-1\t12.50\nMS-SP-3009\t40\nOXV8-30\t22.50\nXX-1\t5',
     );
     await tester.pump();
-    expect(find.text('2 Preise erkannt'), findsOneWidget);
+    expect(find.text('1 Preise erkannt'), findsOneWidget);
     expect(
       find.text(
-        '1 Artikel aus der Produktliste behalten den Listenpreis: OXV8-30',
+        '2 Artikel aus der Produktliste behalten den Listenpreis: '
+        'MS-SP-3009, OXV8-30',
       ),
       findsOneWidget,
     );
-    await tester.tap(find.text('2 Preise importieren'));
+    await tester.tap(find.text('1 Preise importieren'));
     await tester.pumpAndSettle();
-    expect(find.text('2 Preise gespeichert'), findsOneWidget);
-    expect(store.savedPartPrice('RF-M09'), 1990);
-    expect(
-      find.text(
-        '55 von 279 Katalogteilen haben einen Preis aus der Produktliste, '
-        '2 einen gespeicherten Preis. 222 haben noch keinen Preis.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('1 Preise gespeichert'), findsOneWidget);
+    expect(store.savedPartPrice('SPZ-1'), 1250);
+    expect(store.savedPartPrice('MS-SP-3009'), 0);
   });
 }
