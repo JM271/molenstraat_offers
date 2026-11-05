@@ -45,7 +45,7 @@
     "sku": "MS-SP-1001",
     "name": "Kenda Krusade Fatbike tire 20\"x4\"",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/kd001.png",
     "priceCents": 6500
   },
   {
@@ -67,7 +67,7 @@
     "sku": "MS-SP-1004",
     "name": "KingSunny Snow Tire 20\"x4\"",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/eb-ty014.png",
     "priceCents": 11500
   },
   {
@@ -82,35 +82,35 @@
     "sku": "MS-SP-1006",
     "name": "Front Wheel 20\" Dapper/Storm",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/oxv8-28.png",
     "priceCents": 14200
   },
   {
     "sku": "MS-SP-1007",
     "name": "Kenda Inner Tube 16\"x4\"",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/nt102.png",
     "priceCents": 2200
   },
   {
     "sku": "MS-SP-1008",
     "name": "Mini Outer Tire 16\"x4\"",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/nt101.png",
     "priceCents": 6000
   },
   {
     "sku": "MS-SP-1009",
     "name": "Kenda Reflector Fatbike Tire 20\"x4\"",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/kd001.png",
     "priceCents": 6900
   },
   {
     "sku": "MS-SP-2001",
     "name": "Shimano Thumbshifter 7 gears",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/oxv8-06.png",
     "priceCents": 1850
   },
   {
@@ -157,7 +157,7 @@
     "sku": "MS-SP-2007",
     "name": "Brake pad for hydraulic disc (pair)",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/m-30e.png",
     "priceCents": 750
   },
   {
@@ -194,7 +194,7 @@
     "sku": "MS-SP-3008",
     "name": "Halfturn throttle handle & grip",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/oxv8-04.png",
     "priceCents": 3500
   },
   {
@@ -224,7 +224,7 @@
     "sku": "MS-SP-3012",
     "name": "Dual Battery Converter 48V",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/oxv8-51.png",
     "priceCents": 6900
   },
   {
@@ -238,14 +238,14 @@
     "sku": "MS-SP-3014",
     "name": "Controller STORM 21A",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/oxv8-02.png",
     "priceCents": 14500
   },
   {
     "sku": "MS-SP-3015",
     "name": "Controller Mini MS 21A",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/oxv8-02f.png",
     "priceCents": 14500
   },
   {
@@ -260,21 +260,21 @@
     "sku": "MS-SP-4003",
     "name": "Selle longue 2pl. STORM",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/oxv8-35b.png",
     "priceCents": 12000
   },
   {
     "sku": "MS-SP-4004",
     "name": "Handlebar stem bracket",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/oxv8-22.png",
     "priceCents": 3750
   },
   {
     "sku": "MS-SP-4005",
     "name": "Battery bracket holder",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/oxv8-01c.png",
     "priceCents": 3900
   },
   {
@@ -297,14 +297,14 @@
     "sku": "MS-SP-4008",
     "name": "Handle Grip (Dapper/Storm/Mini/Brommer)",
     "category": "Spare Parts",
-    "imageAsset": "",
+    "imageAsset": "assets/products/v20eb-31.png",
     "priceCents": 1900
   },
   {
     "sku": "MS-AC-3001",
     "name": "Alarm Kit",
     "category": "Accessoires",
-    "imageAsset": "",
+    "imageAsset": "assets/products/t-41b.png",
     "priceCents": 3900
   },
   {
@@ -348,7 +348,7 @@
     "sku": "MS-AC-4001",
     "name": "Passenger Seat Kit (Dapper+Pro)",
     "category": "Accessoires",
-    "imageAsset": "",
+    "imageAsset": "assets/products/oxv8-36.png",
     "priceCents": 4900
   },
   {
@@ -386,7 +386,7 @@
     "sku": "MS-BT-6002",
     "name": "Battery 10.4Ah/36V for Mini MS",
     "category": "Accessoires",
-    "imageAsset": "",
+    "imageAsset": "assets/products/oxv8-01b.png",
     "priceCents": 34000
   },
   {
