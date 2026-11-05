@@ -77,27 +77,23 @@ class _SettingsPageState extends State<SettingsPage> {
     if (mounted) Navigator.of(context).pop();
   }
 
-  late final Future<List<CatalogProduct>> _catalog = loadCatalog();
-
-  Future<void> _importPrices(List<CatalogProduct> products) async {
+  Future<void> _importPrices() async {
+    final store = widget.store;
     final prices = await showPriceImportDialog(
       context,
       knownSkus: {
-        for (final p in [...products, ...widget.store.customProducts]) p.sku,
+        for (final p in store.catalog) ...[
+          p.sku,
+          if (p.supplierSku.isNotEmpty) p.supplierSku,
+        ],
+        for (final p in store.customProducts) p.sku,
       },
-      listSkus: {
-        for (final p in products)
-          if (p.hasListPrice) ...[
-            p.sku,
-            if (p.supplierSku.isNotEmpty) p.supplierSku,
-          ],
-      },
-      currency: widget.store.settings.currency,
+      currency: store.settings.currency,
     );
     if (prices == null || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     try {
-      final changed = await widget.store.importPartPrices(prices);
+      final changed = await store.importPartPrices(prices);
       messenger.showSnackBar(
         SnackBar(
           content: Text(
@@ -112,39 +108,26 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Widget _catalogPrices() => FutureBuilder<List<CatalogProduct>>(
-    future: _catalog,
-    builder: (context, snapshot) {
-      final products = snapshot.data;
-      if (products == null) return const SizedBox.shrink();
-      return ListenableBuilder(
-        listenable: widget.store,
-        builder: (context, _) {
-          final listed = products.where((p) => p.hasListPrice).length;
-          final saved = products
-              .where(
-                (p) =>
-                    !p.hasListPrice && widget.store.savedPartPrice(p.sku) > 0,
-              )
-              .length;
-          final missing = products.length - listed - saved;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '$listed von ${products.length} Katalogteilen haben einen '
-                'Preis aus der Produktliste, $saved einen gespeicherten Preis.'
-                '${missing > 0 ? ' $missing haben noch keinen Preis.' : ''}',
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () => _importPrices(products),
-                icon: const Icon(Icons.upload_outlined),
-                label: const Text('Katalogpreise importieren'),
-              ),
-            ],
-          );
-        },
+  /// Prices of the shared catalogue: they apply in both apps at once.
+  Widget _catalogPrices() => ListenableBuilder(
+    listenable: widget.store,
+    builder: (context, _) {
+      final products = widget.store.catalog;
+      final priced = products.where((p) => p.priceCents > 0).length;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$priced von ${products.length} Katalogprodukten haben einen '
+            'Preis. Importierte Preise gelten sofort auf allen Geräten.',
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _importPrices,
+            icon: const Icon(Icons.upload_outlined),
+            label: const Text('Katalogpreise importieren'),
+          ),
+        ],
       );
     },
   );

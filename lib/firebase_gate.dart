@@ -122,20 +122,20 @@ class _MembershipGateState extends State<_MembershipGate> {
       .snapshots(includeMetadataChanges: true);
   OfferStore? _store;
 
-  /// Opens the shared data, links the catalogue's supplier numbers for the
-  /// stock lookup and brings the database's prices up to the bundled
-  /// Molenstraat product list. A failed sync only means it runs again on the
-  /// next start.
+  /// Opens the shared data. On first use it fills the shared product
+  /// catalogue from the bundled list and updates the stored price list; a
+  /// failure only means this runs again on the next start.
   OfferStore _openStore() {
     final store = OfferStore(_db, widget.user.uid);
     loadCatalog()
-        .then((catalog) {
-          store.useCatalog(catalog);
-          return store.syncListPrices(catalog);
+        .then((bundled) async {
+          store.useBundledCatalog(bundled);
+          await store.loaded;
+          await store.seedCatalog(bundled);
+          await store.migratePresets();
         })
         .catchError((Object e) {
-          debugPrint('Listenpreise nicht synchronisiert: $e');
-          return 0;
+          debugPrint('Katalog oder Preisliste nicht eingerichtet: $e');
         });
     return store;
   }

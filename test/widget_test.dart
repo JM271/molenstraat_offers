@@ -22,6 +22,9 @@ Future<OfferStore> openStore(
   String uid = 'u1',
 }) async {
   final store = OfferStore(db, uid);
+  // Not via loadCatalog(): its cached future is bound to the test's zone.
+  final data = await rootBundle.load(catalogAsset);
+  store.useBundledCatalog(parseCatalog(utf8.decode(data.buffer.asUint8List())));
   await store.loaded;
   return store;
 }
@@ -313,8 +316,6 @@ void main() {
       // A supplier part assigned to another own number.
       await part('chain', {'sku': 'OXV8-30', 'productNumber': 'MS-SP-9999'}, 7);
       final store = await openStore(db);
-      final data = await rootBundle.load(catalogAsset);
-      store.useCatalog(parseCatalog(utf8.decode(data.buffer.asUint8List())));
 
       int? workshop(String sku) => store.stockFor(sku)?.workshop;
       expect(workshop('MS-SP-3009'), 2);
@@ -588,14 +589,42 @@ void main() {
       expect(store.savedPartPriceCount, 2);
     });
 
-    test('the database takes over the product list prices', () async {
-      final data = await rootBundle.load(catalogAsset);
-      final catalog = parseCatalog(utf8.decode(data.buffer.asUint8List()));
+    test('the shared catalogue is seeded once from the product list', () async {
       final db = FakeFirebaseFirestore();
-      const prices = 'workshops/molenstraat/partPrices';
-      // An old price of a listed product and one of another part.
-      await db.doc('$prices/a').set({'sku': 'MS-SP-2005', 'priceCents': 1500});
-      await db.doc('$prices/b').set({'sku': 'RF-M09', 'priceCents': 1990});
+      final store = await openStore(db);
+      final bundled = store.catalog;
+      // Until the database has the catalogue, the bundled list stands in.
+      expect(bundled, hasLength(54));
+      expect(
+        store.priceFor(bundled.firstWhere((p) => p.sku == 'MS-SP-2005')),
+        990,
+      );
+
+      expect(await store.seedCatalog(bundled), isTrue);
+      final other = await openStore(db, uid: 'u2');
+      other.useBundledCatalog(const []);
+      expect(other.catalog, hasLength(54));
+      expect(other.catalog.first.category, 'Fatbikes');
+      final disc = other.catalog.firstWhere((p) => p.sku == 'MS-SP-2005');
+      expect((disc.priceCents, disc.supplierSku), (990, 'OXV8-17A'));
+
+      // A price changed in the database applies and is not seeded again.
+      await db
+          .doc(
+            'workshops/molenstraat/products/${OfferStore.documentId('MS-SP-2005')}',
+          )
+          .update({'priceCents': 1100});
+      await settle();
+      expect(await other.seedCatalog(bundled), isFalse);
+      await settle();
+      expect(
+        other.priceFor(other.catalog.firstWhere((p) => p.sku == 'MS-SP-2005')),
+        1100,
+      );
+    });
+
+    test('a stored price list loses its demo prices once', () async {
+      final db = FakeFirebaseFirestore();
       // A stored price list: chain still at the old demo price, tyre
       // changed by hand.
       await db.doc('workshops/molenstraat/offerConfig/presets').set({
@@ -620,18 +649,7 @@ void main() {
         ],
       });
       final store = await openStore(db);
-      final disc = catalog.firstWhere((p) => p.sku == 'MS-SP-2005');
-      // The list price wins in the app even before the database is synced.
-      expect(store.priceFor(disc), 990);
-
-      final listed = catalog.where((p) => p.hasListPrice).length;
-      expect(listed, 54);
-      expect(await store.syncListPrices(catalog), listed);
-      final other = await openStore(db, uid: 'u2');
-      expect(other.savedPartPrice('MS-SP-2005'), 990);
-      expect(other.savedPartPrice('MS-V8P-DP001'), 249000);
-      expect(other.savedPartPrice('RF-M09'), 1990); // not in the list
-      expect(other.priceFor(disc), 990);
+      await store.migratePresets();
       final stored =
           (await db.doc('workshops/molenstraat/offerConfig/presets').get())
                   .data()!['items']
@@ -641,35 +659,53 @@ void main() {
       expect(stored[1]['partPriceCents'], 7000);
       expect(stored[2]['name'], startsWith('Service Pauschale'));
       expect(stored[2]['flatPriceCents'], 15000);
-      // Nothing left to do on the next start.
-      expect(await other.syncListPrices(catalog), 0);
+      // Deleting the service flat rate later sticks.
+      await store.deletePreset('flat-service');
+      await store.migratePresets();
+      await settle();
+      expect(store.presets.map((p) => p.id), isNot(contains('flat-service')));
     });
 
-    test('list prices are not overwritten from offers or imports', () async {
-      final db = FakeFirebaseFirestore();
-      final store = await openStore(db);
-      OfferLine part(String sku, int cents) => OfferLine(
-        kind: LineKind.part,
-        description: sku,
-        quantity: 1,
-        unitPriceCents: cents,
-        sku: sku,
-      );
-      await store.rememberPartPrices([
-        part('MS-SP-2005', 1200),
-        part('RF-M09', 1990),
-      ], hasListPrice: (sku) => sku == 'MS-SP-2005');
-      expect(store.savedPartPrice('MS-SP-2005'), 0);
-      expect(store.savedPartPrice('RF-M09'), 1990);
-      final result = parsePriceList(
-        'MS-SP-2005\t12.00\nRF-M09\t19.90',
-        {'MS-SP-2005', 'RF-M09'},
-        listSkus: {'ms-sp-2005'},
-      );
-      expect(result.prices, {'RF-M09': 1990});
-      expect(result.listSkus, ['MS-SP-2005']);
-      expect(result.unknownSkus, isEmpty);
-    });
+    test(
+      'imported prices go into the catalogue, offers do not change them',
+      () async {
+        final db = FakeFirebaseFirestore();
+        final store = await openStore(db);
+        OfferLine part(String sku, int cents) => OfferLine(
+          kind: LineKind.part,
+          description: sku,
+          quantity: 1,
+          unitPriceCents: cents,
+          sku: sku,
+        );
+        await store.rememberPartPrices([
+          part('MS-SP-2005', 1200),
+          part('RF-M09', 1990),
+        ], hasListPrice: store.hasListPrice);
+        expect(store.savedPartPrice('MS-SP-2005'), 0);
+        expect(store.savedPartPrice('RF-M09'), 1990);
+
+        // By SKU or supplier number; the catalogue is filled first.
+        expect(
+          await store.importPartPrices({
+            'OXV8-17A': 1200,
+            'MS-SP-3009': 4500,
+            'X-1': 300,
+          }),
+          2, // MS-SP-3009 already costs 45.00
+        );
+        await settle();
+        final other = await openStore(db, uid: 'u2');
+        other.useBundledCatalog(const []);
+        expect(other.catalog, hasLength(54));
+        expect(
+          other.catalog.firstWhere((p) => p.sku == 'MS-SP-2005').priceCents,
+          1200,
+        );
+        expect(other.savedPartPrice('X-1'), 300);
+        expect(other.savedPartPrice('OXV8-17A'), 0);
+      },
+    );
 
     test('pasted price lists are read from Excel and CSV', () {
       final known = {'OXV8-30', 'RF-M09', 'KD001', 'OXGT-24'};
@@ -922,8 +958,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        '54 von 54 Katalogteilen haben einen Preis aus der Produktliste, '
-        '0 einen gespeicherten Preis.',
+        '54 von 54 Katalogprodukten haben einen Preis. Importierte Preise '
+        'gelten sofort auf allen Geräten.',
       ),
       findsOneWidget,
     );
@@ -934,18 +970,19 @@ void main() {
       'SPZ-1\t12.50\nMS-SP-3009\t40\nOXV8-30\t22.50\nXX-1\t5',
     );
     await tester.pump();
-    expect(find.text('1 Preise erkannt'), findsOneWidget);
+    expect(find.text('3 Preise erkannt'), findsOneWidget);
     expect(
-      find.text(
-        '2 Artikel aus der Produktliste behalten den Listenpreis: '
-        'MS-SP-3009, OXV8-30',
-      ),
+      find.text('1 unbekannte Artikelnummern werden ignoriert: XX-1'),
       findsOneWidget,
     );
-    await tester.tap(find.text('1 Preise importieren'));
+    await tester.tap(find.text('3 Preise importieren'));
     await tester.pumpAndSettle();
-    expect(find.text('1 Preise gespeichert'), findsOneWidget);
+    expect(find.text('3 Preise gespeichert'), findsOneWidget);
     expect(store.savedPartPrice('SPZ-1'), 1250);
     expect(store.savedPartPrice('MS-SP-3009'), 0);
+    int priceOf(String sku) =>
+        store.catalog.firstWhere((p) => p.sku == sku).priceCents;
+    expect(priceOf('MS-SP-3009'), 4000);
+    expect(priceOf('MS-SP-2002'), 2250); // by its supplier number OXV8-30
   });
 }

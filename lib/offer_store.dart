@@ -48,6 +48,10 @@ class OfferStore extends ChangeNotifier {
       workshop.collection('offerConfig').doc('presets');
   CollectionReference<Map<String, dynamic>> get _partPricesRef =>
       workshop.collection('partPrices');
+  CollectionReference<Map<String, dynamic>> get _productsRef =>
+      workshop.collection('products');
+  DocumentReference<Map<String, dynamic>> get _catalogStateRef =>
+      workshop.collection('catalogConfig').doc('state');
 
   final List<Offer> _offers = [];
   List<RepairPreset> _presets = defaultPresets();
@@ -59,8 +63,10 @@ class OfferStore extends ChangeNotifier {
   final Map<String, _StockedPart> _stockParts = {};
   final Map<String, Set<String>> _stockPartsByNumber = {};
 
-  /// Supplier number per Molenstraat product SKU, from the catalogue.
-  final Map<String, String> _supplierSkus = {};
+  /// The shared product catalogue in the database, and the list bundled
+  /// with the app that stands in until the database has been filled.
+  final List<CatalogProduct> _sharedProducts = [];
+  List<CatalogProduct> _bundledProducts = const [];
   final List<CatalogProduct> _customProducts = [];
   final Map<String, int> _lastNumbers = {};
 
@@ -73,7 +79,24 @@ class OfferStore extends ChangeNotifier {
   List<RepairPreset> get presets => List.unmodifiable(_presets);
   ShopSettings get settings => _settings;
 
-  /// Products the Inventory app added to the shared catalogue.
+  /// The product catalogue shared with the Inventory app: the products in
+  /// the database, or the bundled product list until they are there.
+  List<CatalogProduct> get catalog => _sharedProducts.isNotEmpty
+      ? List.unmodifiable(_sharedProducts)
+      : _bundledProducts;
+
+  /// True if [sku] (or a supplier number of it) is a catalogue product with
+  /// a price; that price applies and is not overwritten from offers.
+  bool hasListPrice(String sku) {
+    final key = _skuKey(sku);
+    return catalog.any(
+      (p) =>
+          p.priceCents > 0 &&
+          (_skuKey(p.sku) == key || _skuKey(p.supplierSku) == key),
+    );
+  }
+
+  /// Products added in Spoke before the shared catalogue existed.
   List<CatalogProduct> get customProducts => List.unmodifiable(_customProducts);
 
   /// True once every collection has delivered its first snapshot.
@@ -184,6 +207,19 @@ class OfferStore extends ChangeNotifier {
         }
       }
     });
+    watch('products', _productsRef.snapshots(), (
+      QuerySnapshot<Map<String, dynamic>> s,
+    ) {
+      _sharedProducts
+        ..clear()
+        ..addAll([
+          for (final doc in s.docs)
+            if (_tryParse(() => CatalogProduct.fromJson(doc.data()))
+                case final p? when p.sku.isNotEmpty && p.name.isNotEmpty)
+              p,
+        ])
+        ..sort(_catalogOrder);
+    });
     watch('catalog', workshop.collection('catalog').snapshots(), (
       QuerySnapshot<Map<String, dynamic>> s,
     ) {
@@ -196,6 +232,18 @@ class OfferStore extends ChangeNotifier {
               p,
         ]);
     });
+  }
+
+  /// Fatbikes, spare parts and accessories first, then by SKU.
+  static int _catalogOrder(CatalogProduct a, CatalogProduct b) {
+    const groups = ['Fatbikes', 'Spare Parts', 'Accessoires'];
+    int rank(CatalogProduct p) {
+      final i = groups.indexOf(p.category);
+      return i < 0 ? groups.length : i;
+    }
+
+    final byGroup = rank(a).compareTo(rank(b));
+    return byGroup != 0 ? byGroup : a.sku.compareTo(b.sku);
   }
 
   static int _newestFirst(Offer a, Offer b) {
@@ -228,17 +276,25 @@ class OfferStore extends ChangeNotifier {
     super.dispose();
   }
 
-  /// Lets [stockFor] find Molenstraat products that the Inventory app keeps
-  /// under their supplier number.
-  void useCatalog(Iterable<CatalogProduct> catalog) {
-    _supplierSkus
-      ..clear()
-      ..addAll({
-        for (final p in catalog)
-          if (p.supplierSku.isNotEmpty) _skuKey(p.sku): _skuKey(p.supplierSku),
-      });
+  /// The product list bundled with the app, used until the shared
+  /// catalogue in the database has been filled.
+  void useBundledCatalog(List<CatalogProduct> products) {
+    _bundledProducts = List.unmodifiable(products);
     notifyListeners();
   }
+
+  /// Fills the shared catalogue from the bundled product list, once. Does
+  /// nothing if it was filled before (by this or the Inventory app), so
+  /// products changed or deleted later are not brought back.
+  Future<bool> seedCatalog(List<CatalogProduct> bundled) =>
+      db.runTransaction((tx) async {
+        if ((await tx.get(_catalogStateRef)).exists) return false;
+        for (final p in bundled) {
+          tx.set(_productsRef.doc(documentId(_skuKey(p.sku))), p.toJson());
+        }
+        tx.set(_catalogStateRef, {'seeded': true});
+        return true;
+      });
 
   /// Stock of a SKU in the Inventory app, null if it is not stocked there.
   /// A part counts if the SKU is its SKU, own product number or supplier
@@ -248,7 +304,11 @@ class OfferStore extends ChangeNotifier {
   StockLevel? stockFor(String sku) {
     final key = _skuKey(sku);
     final ids = {...?_stockPartsByNumber[key]};
-    final supplier = _supplierSkus[key];
+    final supplier = [
+      for (final p in catalog)
+        if (_skuKey(p.sku) == key && p.supplierSku.isNotEmpty)
+          _skuKey(p.supplierSku),
+    ].firstOrNull;
     if (supplier != null) {
       for (final id in _stockPartsByNumber[supplier] ?? const <String>{}) {
         final assigned = _stockParts[id]!.productNumber;
@@ -360,28 +420,45 @@ class OfferStore extends ChangeNotifier {
         _skuKey(line.sku): line.unitPriceCents,
   });
 
-  /// Imports a price list (SKU → price in cents) into the shared database.
-  /// Returns how many prices changed.
-  Future<int> importPartPrices(Map<String, int> prices) => _writePartPrices({
-    for (final MapEntry(:key, :value) in prices.entries)
-      if (value > 0) _skuKey(key): value,
-  });
+  /// Imports a price list (SKU or supplier number → price in cents): prices
+  /// of catalogue products are written into the shared catalogue, others
+  /// into `partPrices`. Returns how many prices changed.
+  Future<int> importPartPrices(Map<String, int> prices) async {
+    final byNumber = <String, CatalogProduct>{
+      for (final p in catalog) ...{
+        if (p.supplierSku.isNotEmpty) _skuKey(p.supplierSku): p,
+        _skuKey(p.sku): p,
+      },
+    };
+    final products = <String, CatalogProduct>{};
+    final others = <String, int>{};
+    for (final MapEntry(:key, :value) in prices.entries) {
+      if (value <= 0) continue;
+      final product = byNumber[_skuKey(key)];
+      if (product == null) {
+        others[_skuKey(key)] = value;
+      } else if (product.priceCents != value) {
+        products[_skuKey(product.sku)] = product.withPrice(value);
+      }
+    }
+    if (products.isNotEmpty) {
+      // Never leave a partly filled catalogue behind.
+      if (_sharedProducts.isEmpty) await seedCatalog(_bundledProducts);
+      final batch = db.batch();
+      for (final MapEntry(:key, :value) in products.entries) {
+        batch.set(_productsRef.doc(documentId(key)), value.toJson());
+      }
+      await batch.commit();
+    }
+    return products.length + await _writePartPrices(others);
+  }
 
   static bool _never(String sku) => false;
 
-  /// Writes the prices of the Molenstraat product list into the shared
-  /// database: every list product's price in `partPrices`, and a stored
-  /// price list without the old demo part prices (see [presetsFromStored])
-  /// and with the [servicePreset]. The price list is only updated while it
+  /// Updates a stored price list once: replaces the old demo part prices
+  /// (see [presetsFromStored]) and adds the [servicePreset]. Only while it
   /// still has demo prices, so entries deleted later stay deleted.
-  /// Only what differs is written, so this is cheap to run on every start.
-  /// Returns how many part prices changed.
-  Future<int> syncListPrices(Iterable<CatalogProduct> catalog) async {
-    await loaded;
-    final changed = await _writePartPrices({
-      for (final p in catalog)
-        if (p.hasListPrice) _skuKey(p.sku): p.priceCents,
-    });
+  Future<void> migratePresets() async {
     final stored = (await _presetsRef.get()).data()?['items'];
     if (stored is List && storedPresetsHaveDemoPrices(stored)) {
       // _presetsFrom replaces the demo prices; writing back stores that.
@@ -390,7 +467,6 @@ class OfferStore extends ChangeNotifier {
         if (!presets.any((p) => p.id == service.id)) presets.add(service);
       });
     }
-    return changed;
   }
 
   Future<int> _writePartPrices(Map<String, int> prices) async {

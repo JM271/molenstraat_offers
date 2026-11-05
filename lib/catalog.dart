@@ -34,15 +34,6 @@ List<CatalogProduct> parseCatalog(String json) => [
     CatalogProduct.fromJson(Map<String, dynamic>.from(row as Map)),
 ].where((p) => p.sku.isNotEmpty && p.name.isNotEmpty).toList();
 
-/// Whether a SKU has a price in the Molenstraat product list.
-Future<bool Function(String sku)> catalogListPriceLookup() async {
-  final listed = {
-    for (final p in await loadCatalog())
-      if (p.hasListPrice) p.sku.toUpperCase(),
-  };
-  return (sku) => listed.contains(sku.toUpperCase());
-}
-
 /// Short stock text such as "Lager 3" or "Lager 2 + 1 Auto".
 String stockLabel(StockLevel stock) => stock.car > 0
     ? 'Lager ${stock.workshop} + ${stock.car} Auto'
@@ -54,11 +45,12 @@ List<String> catalogCategories(List<CatalogProduct> products) => [
 ];
 
 /// Lets the user pick one part from the catalog. Returns null when closed.
-/// [priceOf] gives the price to show (own price or catalog price),
-/// [extraProducts] are added to the bundled catalog (custom products of the
-/// Inventory app) and [stockOf] shows the shared inventory stock.
+/// [products] is the shared catalogue, [priceOf] gives the price to show,
+/// [extraProducts] are added to it (products added in Spoke before the
+/// shared catalogue) and [stockOf] shows the shared inventory stock.
 Future<CatalogProduct?> showCatalogPicker(
   BuildContext context, {
+  required List<CatalogProduct> products,
   required int Function(CatalogProduct product) priceOf,
   required String currency,
   List<CatalogProduct> extraProducts = const [],
@@ -68,6 +60,7 @@ Future<CatalogProduct?> showCatalogPicker(
   isScrollControlled: true,
   showDragHandle: true,
   builder: (_) => _CatalogPicker(
+    products: products,
     priceOf: priceOf,
     currency: currency,
     extraProducts: extraProducts,
@@ -77,12 +70,14 @@ Future<CatalogProduct?> showCatalogPicker(
 
 class _CatalogPicker extends StatefulWidget {
   const _CatalogPicker({
+    required this.products,
     required this.priceOf,
     required this.currency,
     required this.extraProducts,
     required this.stockOf,
   });
 
+  final List<CatalogProduct> products;
   final int Function(CatalogProduct product) priceOf;
   final String currency;
   final List<CatalogProduct> extraProducts;
@@ -93,21 +88,19 @@ class _CatalogPicker extends StatefulWidget {
 }
 
 class _CatalogPickerState extends State<_CatalogPicker> {
-  late final Future<List<CatalogProduct>> _products = loadCatalog().then((
-    bundled,
-  ) {
+  late final Future<List<CatalogProduct>> _products = Future.value(() {
     final known = {
-      for (final p in bundled) ...[
+      for (final p in widget.products) ...[
         p.sku.toUpperCase(),
         if (p.supplierSku.isNotEmpty) p.supplierSku.toUpperCase(),
       ],
     };
     return [
-      ...bundled,
+      ...widget.products,
       for (final p in widget.extraProducts)
         if (!known.contains(p.sku.toUpperCase())) p,
     ];
-  });
+  }());
   String _query = '';
   String? _category;
 
@@ -328,7 +321,6 @@ class PriceListImport {
     required this.prices,
     required this.unknownSkus,
     required this.invalidLines,
-    this.listSkus = const [],
   });
 
   /// Known SKU (upper case) → price in cents.
@@ -339,27 +331,17 @@ class PriceListImport {
 
   /// Lines without a readable SKU and price, e.g. a header.
   final List<String> invalidLines;
-
-  /// SKUs of the Molenstraat product list, which keep their list price.
-  final List<String> listSkus;
 }
 
 /// Reads one SKU and price per line: the first column is the SKU, the last
 /// non-empty column the price. Columns are separated by tabs (pasted from
 /// Excel), semicolons or commas. Prices may be written as `24.90`, `24,90`,
-/// `24.-` or `CHF 24.90`. SKUs in [listSkus] are skipped: their price comes
-/// from the Molenstraat product list.
-PriceListImport parsePriceList(
-  String text,
-  Set<String> knownSkus, {
-  Set<String> listSkus = const {},
-}) {
+/// `24.-` or `CHF 24.90`.
+PriceListImport parsePriceList(String text, Set<String> knownSkus) {
   final known = {for (final sku in knownSkus) sku.trim().toUpperCase()};
-  final listed = {for (final sku in listSkus) sku.trim().toUpperCase()};
   final prices = <String, int>{};
   final unknown = <String>[];
   final invalid = <String>[];
-  final fixed = <String>[];
   for (final raw in const LineSplitter().convert(text)) {
     final line = raw.trim();
     if (line.isEmpty) continue;
@@ -380,9 +362,7 @@ PriceListImport parsePriceList(
       continue;
     }
     final sku = fields.first.toUpperCase();
-    if (listed.contains(sku)) {
-      fixed.add(fields.first);
-    } else if (known.contains(sku)) {
+    if (known.contains(sku)) {
       prices[sku] = price;
     } else {
       unknown.add(fields.first);
@@ -392,7 +372,6 @@ PriceListImport parsePriceList(
     prices: prices,
     unknownSkus: unknown,
     invalidLines: invalid,
-    listSkus: fixed,
   );
 }
 
@@ -400,26 +379,16 @@ PriceListImport parsePriceList(
 Future<Map<String, int>?> showPriceImportDialog(
   BuildContext context, {
   required Set<String> knownSkus,
-  Set<String> listSkus = const {},
   required String currency,
 }) => showDialog<Map<String, int>>(
   context: context,
-  builder: (_) => _PriceImportDialog(
-    knownSkus: knownSkus,
-    listSkus: listSkus,
-    currency: currency,
-  ),
+  builder: (_) => _PriceImportDialog(knownSkus: knownSkus, currency: currency),
 );
 
 class _PriceImportDialog extends StatefulWidget {
-  const _PriceImportDialog({
-    required this.knownSkus,
-    required this.listSkus,
-    required this.currency,
-  });
+  const _PriceImportDialog({required this.knownSkus, required this.currency});
 
   final Set<String> knownSkus;
-  final Set<String> listSkus;
   final String currency;
 
   @override
@@ -439,7 +408,7 @@ class _PriceImportDialogState extends State<_PriceImportDialog> {
   void _parse(String text) => setState(
     () => _result = text.trim().isEmpty
         ? null
-        : parsePriceList(text, widget.knownSkus, listSkus: widget.listSkus),
+        : parsePriceList(text, widget.knownSkus),
   );
 
   @override
@@ -482,11 +451,6 @@ class _PriceImportDialogState extends State<_PriceImportDialog> {
                     '${result.unknownSkus.length} unbekannte Artikelnummern '
                     'werden ignoriert: ${sample(result.unknownSkus)}',
                     style: TextStyle(color: error),
-                  ),
-                if (result.listSkus.isNotEmpty)
-                  Text(
-                    '${result.listSkus.length} Artikel aus der Produktliste '
-                    'behalten den Listenpreis: ${sample(result.listSkus)}',
                   ),
                 if (result.invalidLines.isNotEmpty)
                   Text(

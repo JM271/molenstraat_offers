@@ -131,6 +131,25 @@ class CatalogProduct {
     supplierSku: (json['supplierSku'] as String? ?? '').trim(),
   );
 
+  /// The product as stored in the shared catalogue (`products`).
+  Map<String, dynamic> toJson() => {
+    'sku': sku.trim().toUpperCase(),
+    'name': name,
+    'category': category,
+    'supplierSku': supplierSku,
+    'imageAsset': imageAsset,
+    'priceCents': priceCents,
+  };
+
+  CatalogProduct withPrice(int cents) => CatalogProduct(
+    sku: sku,
+    name: name,
+    category: category,
+    imageAsset: imageAsset,
+    priceCents: cents,
+    supplierSku: supplierSku,
+  );
+
   bool matches(String query) {
     final q = query.toLowerCase();
     return sku.toLowerCase().contains(q) ||

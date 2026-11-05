@@ -92,7 +92,7 @@ class _OfferPageState extends State<OfferPage> {
       if (saved.lines.any((l) => l.sku.isNotEmpty)) {
         await widget.store.rememberPartPrices(
           saved.lines,
-          hasListPrice: await catalogListPriceLookup(),
+          hasListPrice: widget.store.hasListPrice,
         );
       }
       if (!mounted) return true;
@@ -151,6 +151,7 @@ class _OfferPageState extends State<OfferPage> {
     final store = widget.store;
     final product = await showCatalogPicker(
       context,
+      products: store.catalog,
       priceOf: store.priceFor,
       currency: _settings.currency,
       extraProducts: store.customProducts,
