@@ -110,25 +110,68 @@ void main() {
     expect(lines[1].totalCents, 2500);
   });
 
-  test('price list starts with flagged demo part prices', () {
+  test('price list uses list prices and has no demo prices', () {
     final presets = defaultPresets();
-    final withPart = presets.where((p) => p.partName.isNotEmpty);
-    expect(withPart, isNotEmpty);
-    expect(withPart.every((p) => p.partPriceCents > 0 && p.demoPrice), isTrue);
-    expect(presets.where((p) => p.partName.isEmpty && p.demoPrice), isEmpty);
+    // Parts in the Molenstraat product list have their list price.
     final chain = presets.firstWhere((p) => p.partName == 'Kette');
-    expect(RepairPreset.fromJson(chain.toJson()).demoPrice, isTrue);
-    expect(presetSummary(chain, 9000, 'CHF'), contains('CHF 24.90 (Demo)'));
-    // An edited entry (saved without the flag) counts as checked.
-    final edited = RepairPreset.fromJson(
-      {...chain.toJson()}..remove('demoPrice'),
+    expect(chain.partPriceCents, 2500);
+    expect(presetSummary(chain, 9000, 'CHF'), contains('Kette CHF 25.00'));
+    // Others have no price until one is entered.
+    final cable = presets.firstWhere((p) => p.partName == 'Schaltzug');
+    expect(cable.partPriceCents, 0);
+    expect(presetSummary(cable, 9000, 'CHF'), contains('(Preis fehlt)'));
+    expect(
+      presets.map((p) => presetSummary(p, 9000, 'CHF')).join(),
+      isNot(contains('Demo')),
     );
-    expect(presetSummary(edited, 9000, 'CHF'), isNot(contains('Demo')));
+  });
+
+  test('demo prices of a stored price list are replaced or removed', () {
+    final stored = [
+      {
+        'id': 'a',
+        'name': 'Kette ersetzen',
+        'partName': 'Kette',
+        'partPriceCents': 2490,
+        'demoPrice': true,
+      },
+      {
+        'id': 'b',
+        'name': 'Schaltzug ersetzen',
+        'partName': 'Schaltzug',
+        'partPriceCents': 690,
+        'demoPrice': true,
+      },
+      {
+        'id': 'c',
+        'name': 'Speiche ersetzen',
+        'partName': 'Speiche',
+        'partPriceCents': 450,
+      },
+    ];
+    expect(storedPresetsHaveDemoPrices(stored), isTrue);
+    final presets = presetsFromStored(stored);
+    expect(presets.map((p) => p.partPriceCents), [2500, 0, 450]);
+    expect(
+      storedPresetsHaveDemoPrices([for (final p in presets) p.toJson()]),
+      isFalse,
+    );
   });
 
   test('flat rates from the price list count as work', () {
     final flats = defaultPresets().where((p) => p.isFlat).toList();
-    expect(flats.map((p) => p.flatPriceCents), [3000, 5000, 10000, 15000]);
+    expect(flats.map((p) => p.flatPriceCents), [
+      3000,
+      5000,
+      10000,
+      15000,
+      15000,
+    ]);
+    expect(
+      flats.last.name,
+      'Service Pauschale: inkl. Anfahrtskosten, Montage, Reparatur.',
+    );
+    expect(flats.last.toLines(9000).single.totalCents, 15000);
     final small = flats.first;
     expect(RepairPreset.fromJson(small.toJson()).flatPriceCents, 3000);
     expect(
@@ -239,6 +282,50 @@ void main() {
       expect(stockLabel(stock), 'Lager 3 + 1 Auto');
       expect(store.stockFor('RF-M09'), isNull);
       expect(store.customProducts.single.sku, 'MS-001');
+    });
+
+    test('finds stock of Molenstraat products by any part number', () async {
+      final db = FakeFirebaseFirestore();
+      final parts = db.collection('workshops/molenstraat/parts');
+      Future<void> part(String id, Map<String, Object> numbers, int qty) =>
+          parts.doc(id).set({
+            'id': id,
+            'name': id,
+            'quantity': qty,
+            ...numbers,
+          });
+      // Saved by the current Inventory app: own number stored.
+      await part('switch', {
+        'sku': 'OXV8-05',
+        'productNumber': 'MS-SP-3009',
+        'orderNumber': 'OXV8-05',
+      }, 2);
+      // Older record: only the supplier SKU.
+      await part('disc', {'sku': 'OXV8-17A'}, 5);
+      // Created with the own number as SKU.
+      await part('seat', {'sku': 'MS-AC-5002', 'orderNumber': '1079SW'}, 1);
+      // Supplier code with two products: assigned to one of them by hand.
+      await part('ctrl', {
+        'sku': 'OXV8-02',
+        'productNumber': 'MS-SP-3011',
+        'orderNumber': 'OXV8-02',
+      }, 4);
+      // A supplier part assigned to another own number.
+      await part('chain', {'sku': 'OXV8-30', 'productNumber': 'MS-SP-9999'}, 7);
+      final store = await openStore(db);
+      final data = await rootBundle.load(catalogAsset);
+      store.useCatalog(parseCatalog(utf8.decode(data.buffer.asUint8List())));
+
+      int? workshop(String sku) => store.stockFor(sku)?.workshop;
+      expect(workshop('MS-SP-3009'), 2);
+      expect(workshop('OXV8-05'), 2);
+      expect(workshop('MS-SP-2005'), 5);
+      expect(workshop('OXV8-17A'), 5);
+      expect(workshop('MS-AC-5002'), 1);
+      expect(workshop('MS-SP-3011'), 4);
+      expect(workshop('MS-SP-3004'), isNull);
+      expect(workshop('MS-SP-2002'), isNull);
+      expect(workshop('OXV8-30'), 7);
     });
   });
 
@@ -391,18 +478,31 @@ void main() {
       // test's zone and never resolve inside the widget test's fake async.
       final data = await rootBundle.load(catalogAsset);
       final products = parseCatalog(utf8.decode(data.buffer.asUint8List()));
-      expect(products, hasLength(243));
+      expect(products, hasLength(297));
       expect(products.map((p) => p.sku).toSet(), hasLength(products.length));
       expect(catalogCategories(products), contains('Brakes'));
       for (final p in products.where((p) => p.imageAsset.isNotEmpty)) {
         final data = await rootBundle.load(p.imageAsset);
         expect(data.lengthInBytes, greaterThan(0), reason: p.imageAsset);
       }
-      // Every part has a (for now: demo) price.
-      expect(products.where((p) => p.priceCents <= 0), isEmpty);
+      // Prices come only from the Molenstraat product list.
+      final own = products.where((p) => p.sku.startsWith('MS-')).toList();
+      expect(own, hasLength(54));
+      expect(own.where((p) => p.priceCents <= 0), isEmpty);
+      expect(products.where((p) => p.hasListPrice), hasLength(54 + 19));
+      expect(products.first.category, 'Fatbikes');
+      final dapper = products.firstWhere((p) => p.sku == 'MS-V8P-DP001');
+      expect(dapper.priceCents, 249000);
+      final disc = products.firstWhere((p) => p.sku == 'MS-SP-2005');
+      expect(disc.priceCents, 990);
+      expect(disc.imageAsset, 'assets/products/oxv8-17a.png');
+      // The supplier part behind a listed product has the same price.
+      final supplierDisc = products.firstWhere((p) => p.sku == 'OXV8-17A');
+      expect(supplierDisc.priceCents, 990);
+      // Supplier parts not in the list have no price.
       final mirror = products.firstWhere((p) => p.sku == 'RF-M09');
-      expect(mirror.priceCents, 2490);
-      expect(mirror.demoPrice, isTrue);
+      expect(mirror.priceCents, 0);
+      expect(mirror.hasListPrice, isFalse);
       expect(mirror.matches('rf-m'), isTrue);
       expect(mirror.matches('mirror'), isTrue);
     });
@@ -438,28 +538,19 @@ void main() {
       expect(String.fromCharCodes(bytes.take(5)), '%PDF-');
     });
 
-    test('prices in the database replace demo prices', () async {
+    test('prices in the database fill parts without list price', () async {
       final db = FakeFirebaseFirestore();
       final store = await openStore(db);
       const lock = CatalogProduct(
         sku: 'OXV8-01E',
         name: 'V8 battery lock',
         category: 'Electrics',
-        priceCents: 1990,
-        demoPrice: true,
       );
       const mirror = CatalogProduct(
         sku: 'RF-M09',
         name: 'Mirror',
         category: 'Cockpit',
-        priceCents: 2490,
-        demoPrice: true,
       );
-      int catalogPriceOf(String sku) => switch (sku) {
-        'OXV8-01E' => 1990,
-        'RF-M09' => 2490,
-        _ => 0,
-      };
       OfferLine part(String sku, int cents) => OfferLine(
         kind: LineKind.part,
         description: sku,
@@ -467,24 +558,21 @@ void main() {
         unitPriceCents: cents,
         sku: sku,
       );
-      expect(store.priceFor(lock), 1990);
-      expect(store.isDemoPrice(lock), isTrue);
+      expect(store.priceFor(lock), 0);
 
       await store.rememberPartPrices([
-        part('OXV8-01E', 1500), // changed: saved for everyone
-        part('RF-M09', 2490), // unchanged demo price: stays demo
+        part('OXV8-01E', 1500), // entered on the offer: saved for everyone
         OfferLine(
           kind: LineKind.part,
           description: 'Kette',
           quantity: 1,
           unitPriceCents: 3000,
         ),
-      ], catalogPriceOf: catalogPriceOf);
+      ]);
       final other = await openStore(db, uid: 'u2');
       expect(other.priceFor(lock), 1500);
-      expect(other.isDemoPrice(lock), isFalse);
-      expect(other.savedPartPrice('RF-M09'), 0);
-      expect(other.isDemoPrice(mirror), isTrue);
+      expect(other.priceFor(mirror), 0);
+      expect(other.savedPartPriceCount, 1);
 
       // An imported price list applies on every device at once.
       expect(
@@ -493,15 +581,92 @@ void main() {
       );
       await settle();
       expect(store.priceFor(mirror), 2200);
-      expect(store.isDemoPrice(mirror), isFalse);
       expect(store.savedPartPriceCount, 2);
+    });
 
-      // A saved price is kept, even if it equals the old demo price.
+    test('the database takes over the product list prices', () async {
+      final data = await rootBundle.load(catalogAsset);
+      final catalog = parseCatalog(utf8.decode(data.buffer.asUint8List()));
+      final db = FakeFirebaseFirestore();
+      const prices = 'workshops/molenstraat/partPrices';
+      // An old price of a listed supplier part and one of another part.
+      await db.doc('$prices/a').set({'sku': 'OXV8-17A', 'priceCents': 1500});
+      await db.doc('$prices/b').set({'sku': 'RF-M09', 'priceCents': 1990});
+      // A stored price list: chain still at the old demo price, tyre
+      // changed by hand.
+      await db.doc('workshops/molenstraat/offerConfig/presets').set({
+        'items': [
+          {
+            ...RepairPreset(
+              id: 'preset-5',
+              name: 'Kette ersetzen',
+              labourMinutes: 15,
+              partName: 'Kette',
+              partPriceCents: 2490,
+            ).toJson(),
+            'demoPrice': true,
+          },
+          RepairPreset(
+            id: 'preset-1',
+            name: 'Reifen ersetzen',
+            labourMinutes: 30,
+            partName: 'Fatbike-Reifen',
+            partPriceCents: 7000,
+          ).toJson(),
+        ],
+      });
+      final store = await openStore(db);
+      final disc = catalog.firstWhere((p) => p.sku == 'MS-SP-2005');
+      final supplierDisc = catalog.firstWhere((p) => p.sku == 'OXV8-17A');
+      // The list price wins in the app even before the database is synced.
+      expect(store.priceFor(supplierDisc), 990);
+
+      final listed = catalog.where((p) => p.hasListPrice).length;
+      expect(listed, 54 + 19);
+      expect(await store.syncListPrices(catalog), listed);
+      final other = await openStore(db, uid: 'u2');
+      expect(other.savedPartPrice('OXV8-17A'), 990);
+      expect(other.savedPartPrice('MS-SP-2005'), 990);
+      expect(other.savedPartPrice('MS-V8P-DP001'), 249000);
+      expect(other.savedPartPrice('RF-M09'), 1990); // not in the list
+      expect(other.priceFor(disc), 990);
+      final stored =
+          (await db.doc('workshops/molenstraat/offerConfig/presets').get())
+                  .data()!['items']
+              as List;
+      expect(stored[0]['partPriceCents'], 2500);
+      expect(stored[0]['demoPrice'], isNull);
+      expect(stored[1]['partPriceCents'], 7000);
+      expect(stored[2]['name'], startsWith('Service Pauschale'));
+      expect(stored[2]['flatPriceCents'], 15000);
+      // Nothing left to do on the next start.
+      expect(await other.syncListPrices(catalog), 0);
+    });
+
+    test('list prices are not overwritten from offers or imports', () async {
+      final db = FakeFirebaseFirestore();
+      final store = await openStore(db);
+      OfferLine part(String sku, int cents) => OfferLine(
+        kind: LineKind.part,
+        description: sku,
+        quantity: 1,
+        unitPriceCents: cents,
+        sku: sku,
+      );
       await store.rememberPartPrices([
-        part('OXV8-01E', 1990),
-      ], catalogPriceOf: catalogPriceOf);
-      await settle();
-      expect(other.savedPartPrice('OXV8-01E'), 1990);
+        part('MS-SP-2005', 1200),
+        part('RF-M09', 1990),
+      ], hasListPrice: (sku) => sku == 'MS-SP-2005');
+      expect(store.savedPartPrice('MS-SP-2005'), 0);
+      expect(store.savedPartPrice('RF-M09'), 1990);
+      final result = parsePriceList(
+        'MS-SP-2005\t12.00\nRF-M09\t19.90',
+        {'MS-SP-2005', 'RF-M09'},
+        listSkus: {'ms-sp-2005'},
+      );
+      expect(result.prices, {'RF-M09': 1990});
+      expect(result.listSkus, ['MS-SP-2005']);
+      expect(result.unknownSkus, isEmpty);
     });
 
     test('pasted price lists are read from Excel and CSV', () {
@@ -553,7 +718,19 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Teil aus Katalog'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(ChoiceChip, 'Cockpit'));
+      final cockpit = find.widgetWithText(ChoiceChip, 'Cockpit');
+      await tester.scrollUntilVisible(
+        cockpit,
+        150,
+        // The category chips: the picker's horizontal list, on top of the
+        // offer page.
+        scrollable: find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axisDirection == AxisDirection.right,
+            )
+            .last,
+      );
+      await tester.tap(cockpit);
       await tester.enterText(
         find.widgetWithText(TextField, 'Teil oder Artikelnummer suchen'),
         'rf-m09',
@@ -564,11 +741,10 @@ void main() {
       expect(find.text('Art.-Nr. RF-M09'), findsOneWidget);
     }
 
-    // The catalog's demo price is filled in and flagged.
+    // A part without list price asks for a price.
     await pickMirror();
-    expect(find.widgetWithText(TextFormField, '24.90'), findsOneWidget);
     expect(
-      find.text('Demopreis aus dem Katalog, bitte prüfen'),
+      find.text('Nicht in der Produktliste, bitte Preis eintragen'),
       findsOneWidget,
     );
     await tester.enterText(
@@ -582,10 +758,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(store.offers.single.lines.single.sku, 'RF-M09');
 
-    // The next offer fills in the own price, without the demo warning.
+    // The next offer fills in the entered price.
     await pickMirror();
     expect(find.widgetWithText(TextFormField, '19.90'), findsOneWidget);
-    expect(find.text('Demopreis aus dem Katalog, bitte prüfen'), findsNothing);
+    expect(
+      find.text('Nicht in der Produktliste, bitte Preis eintragen'),
+      findsNothing,
+    );
   });
 
   testWidgets('PDF preview saves a new offer first', (tester) async {
@@ -726,8 +905,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        '0 von 243 Katalogteilen haben einen gespeicherten Preis. '
-        '243 zeigen noch Demopreise.',
+        '73 von 297 Katalogteilen haben einen Preis aus der Produktliste, '
+        '0 einen gespeicherten Preis. 224 haben noch keinen Preis.',
       ),
       findsOneWidget,
     );
@@ -735,18 +914,24 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byType(TextField).last,
-      'RF-M09\t19.90\nOXV8-30\t22.50\nXX-1\t5',
+      'RF-M09\t19.90\nKD001\t55.00\nOXV8-30\t22.50\nXX-1\t5',
     );
     await tester.pump();
     expect(find.text('2 Preise erkannt'), findsOneWidget);
+    expect(
+      find.text(
+        '1 Artikel aus der Produktliste behalten den Listenpreis: OXV8-30',
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.text('2 Preise importieren'));
     await tester.pumpAndSettle();
     expect(find.text('2 Preise gespeichert'), findsOneWidget);
     expect(store.savedPartPrice('RF-M09'), 1990);
     expect(
       find.text(
-        '2 von 243 Katalogteilen haben einen gespeicherten Preis. '
-        '241 zeigen noch Demopreise.',
+        '73 von 297 Katalogteilen haben einen Preis aus der Produktliste, '
+        '2 einen gespeicherten Preis. 222 haben noch keinen Preis.',
       ),
       findsOneWidget,
     );

@@ -92,7 +92,7 @@ class _OfferPageState extends State<OfferPage> {
       if (saved.lines.any((l) => l.sku.isNotEmpty)) {
         await widget.store.rememberPartPrices(
           saved.lines,
-          catalogPriceOf: await catalogPriceLookup(),
+          hasListPrice: await catalogListPriceLookup(),
         );
       }
       if (!mounted) return true;
@@ -149,11 +149,9 @@ class _OfferPageState extends State<OfferPage> {
 
   Future<void> _addFromCatalog() async {
     final store = widget.store;
-    bool isDemo(CatalogProduct p) => store.isDemoPrice(p);
     final product = await showCatalogPicker(
       context,
       priceOf: store.priceFor,
-      isDemoPrice: isDemo,
       currency: _settings.currency,
       extraProducts: store.customProducts,
       stockOf: store.stockFor,
@@ -162,9 +160,9 @@ class _OfferPageState extends State<OfferPage> {
     final line = await showLineDialog(
       context,
       isNew: true,
-      priceNote: isDemo(product)
-          ? 'Demopreis aus dem Katalog, bitte prüfen'
-          : null,
+      priceNote: store.priceFor(product) > 0
+          ? null
+          : 'Nicht in der Produktliste, bitte Preis eintragen',
       line: OfferLine(
         kind: LineKind.part,
         description: product.name,

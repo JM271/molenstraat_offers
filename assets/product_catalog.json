@@ -1,39 +1,429 @@
 [
   {
+    "sku": "MS-FB-M001",
+    "name": "Fatbike MOOI - Olive Green",
+    "category": "Fatbikes",
+    "imageAsset": "",
+    "priceCents": 269000
+  },
+  {
+    "sku": "MS-FB-M002",
+    "name": "Fatbike MOOI - Deep Coffee",
+    "category": "Fatbikes",
+    "imageAsset": "",
+    "priceCents": 269000
+  },
+  {
+    "sku": "MS-FB-MIN001",
+    "name": "Mini MS Fatbike",
+    "category": "Fatbikes",
+    "imageAsset": "",
+    "priceCents": 185000
+  },
+  {
+    "sku": "MS-FB-STM001",
+    "name": "Fatbike STORM (Dual Battery)",
+    "category": "Fatbikes",
+    "imageAsset": "",
+    "priceCents": 269000
+  },
+  {
+    "sku": "MS-V8P-DP001",
+    "name": "Fatbike Dapper PRO",
+    "category": "Fatbikes",
+    "imageAsset": "",
+    "priceCents": 249000
+  },
+  {
+    "sku": "MS-V8UM-MS002",
+    "name": "Fatbike Mini MS",
+    "category": "Fatbikes",
+    "imageAsset": "",
+    "priceCents": 185000
+  },
+  {
+    "sku": "MS-SP-1001",
+    "name": "Kenda Krusade Fatbike tire 20\"x4\"",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 6500
+  },
+  {
+    "sku": "MS-SP-1002",
+    "supplierSku": "KD002",
+    "name": "Kenda Inner Tube 20\"x4\"",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/kd002.png",
+    "priceCents": 2200
+  },
+  {
+    "sku": "MS-SP-1003",
+    "name": "Wheel reflector (orange)",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 290
+  },
+  {
+    "sku": "MS-SP-1004",
+    "name": "KingSunny Snow Tire 20\"x4\"",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 11500
+  },
+  {
+    "sku": "MS-SP-1005",
+    "supplierSku": "OXV8-27D",
+    "name": "Motor Wheel 500W (rear) Dapper/Dapper PRO",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-27d.png",
+    "priceCents": 48900
+  },
+  {
+    "sku": "MS-SP-1006",
+    "name": "Front Wheel 20\" Dapper/Storm",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 14200
+  },
+  {
+    "sku": "MS-SP-1007",
+    "name": "Kenda Inner Tube 16\"x4\"",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 2200
+  },
+  {
+    "sku": "MS-SP-1008",
+    "name": "Mini Outer Tire 16\"x4\"",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 6000
+  },
+  {
+    "sku": "MS-SP-1009",
+    "name": "Kenda Reflector Fatbike Tire 20\"x4\"",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 6900
+  },
+  {
+    "sku": "MS-SP-2001",
+    "name": "Shimano Thumbshifter 7 gears",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 1850
+  },
+  {
+    "sku": "MS-SP-2002",
+    "supplierSku": "OXV8-30",
+    "name": "Chain for Fatbike",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-30.png",
+    "priceCents": 2500
+  },
+  {
+    "sku": "MS-SP-2003",
+    "supplierSku": "OXV8-31",
+    "name": "Rear Derailleur Shimano",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-31.png",
+    "priceCents": 2100
+  },
+  {
+    "sku": "MS-SP-2004",
+    "supplierSku": "OXV8-13",
+    "name": "Full Brake caliper set (hydraulic) 9cm (L/R)",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-13.png",
+    "priceCents": 13900
+  },
+  {
+    "sku": "MS-SP-2005",
+    "supplierSku": "OXV8-17A",
+    "name": "Brake disc V8 - 160mm (1pce)",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-17a.png",
+    "priceCents": 990
+  },
+  {
+    "sku": "MS-SP-2006",
+    "supplierSku": "OXV8-38",
+    "name": "Chain Guard",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-38.png",
+    "priceCents": 1200
+  },
+  {
+    "sku": "MS-SP-2007",
+    "name": "Brake pad for hydraulic disc (pair)",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 750
+  },
+  {
+    "sku": "MS-SP-3004",
+    "name": "Controller Dapper 21A",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-02.png",
+    "priceCents": 14500
+  },
+  {
+    "sku": "MS-SP-3005",
+    "supplierSku": "OXV8-09B",
+    "name": "Sensor - Magnet assist",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-09b.png",
+    "priceCents": 1490
+  },
+  {
+    "sku": "MS-SP-3006",
+    "supplierSku": "OXV8-10",
+    "name": "Main Cable for Dapper/PRO",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-10.png",
+    "priceCents": 6500
+  },
+  {
+    "sku": "MS-SP-3007",
+    "name": "LCD M9Display for Dapper/PRO",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 11550
+  },
+  {
+    "sku": "MS-SP-3008",
+    "name": "Halfturn throttle handle & grip",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 3500
+  },
+  {
+    "sku": "MS-SP-3009",
+    "supplierSku": "OXV8-05",
+    "name": "3 in 1 switch",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-05.png",
+    "priceCents": 4500
+  },
+  {
+    "sku": "MS-SP-3010",
+    "supplierSku": "OXV8-07",
+    "name": "Front Light (LED) for Fatbike",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-07.png",
+    "priceCents": 6500
+  },
+  {
+    "sku": "MS-SP-3011",
+    "name": "Controller Dapper PRO 21A",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-02.png",
+    "priceCents": 14500
+  },
+  {
+    "sku": "MS-SP-3012",
+    "name": "Dual Battery Converter 48V",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 6900
+  },
+  {
+    "sku": "MS-SP-3013",
+    "name": "Brake Lever Sensor",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 1400
+  },
+  {
+    "sku": "MS-SP-3014",
+    "name": "Controller STORM 21A",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 14500
+  },
+  {
+    "sku": "MS-SP-3015",
+    "name": "Controller Mini MS 21A",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 14500
+  },
+  {
+    "sku": "MS-SP-4002",
+    "supplierSku": "OXV8-26",
+    "name": "Kickstand 300mm",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-26.png",
+    "priceCents": 3900
+  },
+  {
+    "sku": "MS-SP-4003",
+    "name": "Selle longue 2pl. STORM",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 12000
+  },
+  {
+    "sku": "MS-SP-4004",
+    "name": "Handlebar stem bracket",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 3750
+  },
+  {
+    "sku": "MS-SP-4005",
+    "name": "Battery bracket holder",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 3900
+  },
+  {
+    "sku": "MS-SP-4006",
+    "supplierSku": "OXV8-25",
+    "name": "Pedal set for Fatbike (L+R)",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-25.png",
+    "priceCents": 1200
+  },
+  {
+    "sku": "MS-SP-4007",
+    "supplierSku": "OXV8-34B",
+    "name": "Pedal Crank set - Aluminium crank-152 ProWheel",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-34b.png",
+    "priceCents": 4900
+  },
+  {
+    "sku": "MS-SP-4008",
+    "name": "Handle Grip (Dapper/Storm/Mini/Brommer)",
+    "category": "Spare Parts",
+    "imageAsset": "",
+    "priceCents": 1900
+  },
+  {
+    "sku": "MS-AC-3001",
+    "name": "Alarm Kit",
+    "category": "Accessoires",
+    "imageAsset": "",
+    "priceCents": 3900
+  },
+  {
+    "sku": "MS-AC-3002",
+    "name": "Front Rack - Bagage holder L",
+    "category": "Accessoires",
+    "imageAsset": "",
+    "priceCents": 5500
+  },
+  {
+    "sku": "MS-AC-3003",
+    "supplierSku": "OXV8-33",
+    "name": "48V Charger for Fatbike",
+    "category": "Accessoires",
+    "imageAsset": "assets/products/oxv8-33.png",
+    "priceCents": 6500
+  },
+  {
+    "sku": "MS-AC-3004",
+    "name": "Rear Bagage holder (MOOI)",
+    "category": "Accessoires",
+    "imageAsset": "",
+    "priceCents": 5500
+  },
+  {
+    "sku": "MS-AC-3005",
+    "supplierSku": "OXV8-33B",
+    "name": "36V Charger for Mini MS",
+    "category": "Accessoires",
+    "imageAsset": "assets/products/oxv8-33b.png",
+    "priceCents": 6500
+  },
+  {
+    "sku": "MS-AC-3006",
+    "name": "Front Rack - Bagage holder (Mini MS)",
+    "category": "Accessoires",
+    "imageAsset": "",
+    "priceCents": 5500
+  },
+  {
+    "sku": "MS-AC-4001",
+    "name": "Passenger Seat Kit (Dapper+Pro)",
+    "category": "Accessoires",
+    "imageAsset": "",
+    "priceCents": 4900
+  },
+  {
+    "sku": "MS-AC-5001",
+    "name": "Phone bag (water resistant) for Fatbike",
+    "category": "Accessoires",
+    "imageAsset": "",
+    "priceCents": 1990
+  },
+  {
+    "sku": "MS-AC-5002",
+    "supplierSku": "1079SW",
+    "name": "Widek Qibbel AIR Seat",
+    "category": "Accessoires",
+    "imageAsset": "",
+    "priceCents": 14900
+  },
+  {
+    "sku": "MS-AC-5003",
+    "supplierSku": "1078SW",
+    "name": "Widek Qibbel AIR Seat - Front",
+    "category": "Accessoires",
+    "imageAsset": "",
+    "priceCents": 9900
+  },
+  {
+    "sku": "MS-BT-6001",
+    "supplierSku": "OXV8-01",
+    "name": "Battery 15Ah/48V for Dapper/PRO",
+    "category": "Accessoires",
+    "imageAsset": "assets/products/oxv8-01.png",
+    "priceCents": 36000
+  },
+  {
+    "sku": "MS-BT-6002",
+    "name": "Battery 10.4Ah/36V for Mini MS",
+    "category": "Accessoires",
+    "imageAsset": "",
+    "priceCents": 34000
+  },
+  {
+    "sku": "MS-SP-3016",
+    "supplierSku": "OXV8-04C",
+    "name": "Modified COLOR throttle handle + grip",
+    "category": "Accessoires",
+    "imageAsset": "assets/products/oxv8-04c.png",
+    "priceCents": 4900
+  },
+  {
     "sku": "RF-M09",
     "name": "Ninebot 360 degree rotation rearview mirror (1pair)",
     "category": "Cockpit",
     "imageAsset": "assets/products/rf-m09.png",
-    "page": 1,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 1
   },
   {
     "sku": "OXH9-02",
     "name": "H9 old controller 48V 21A (unlocked) ,for 500W motor with black plug(Code:6376)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxh9-02.png",
-    "page": 1,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 1
   },
   {
     "sku": "OXH9-02B",
     "name": "H9 old controller(unlocked) ,for 500W motor with red plug(Code:8203)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxh9-02b.png",
-    "page": 1,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 1
   },
   {
     "sku": "OXH9-02C",
     "name": "GT20/Q9/H9/Q8 new controller ,for 500W motor with red plug(Code:9158)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxh9-02c.png",
-    "page": 1,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 1
   },
   {
     "sku": "OXV8-01",
@@ -41,35 +431,28 @@
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-01.png",
     "page": 1,
-    "priceCents": 54900,
-    "demoPrice": true
+    "priceCents": 36000
   },
   {
     "sku": "OXV8-01B",
     "name": "36V 10.4A battery pack with bracket- V8 mini",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-01b.png",
-    "page": 1,
-    "priceCents": 39900,
-    "demoPrice": true
+    "page": 1
   },
   {
     "sku": "OXV8-01C",
     "name": "V8 Battery Bracket",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-01c.png",
-    "page": 1,
-    "priceCents": 3990,
-    "demoPrice": true
+    "page": 1
   },
   {
     "sku": "OXV8-01E",
     "name": "V8 battery lock",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-01e.png",
-    "page": 1,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 1
   },
   {
     "sku": "OXV8-02",
@@ -77,179 +460,140 @@
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-02.png",
     "page": 1,
-    "priceCents": 13900,
-    "demoPrice": true
+    "priceCents": 14500
   },
   {
     "sku": "OXV8-02B",
     "name": "V8 Controller 48V 21A V4.0-US Version(unlocked),for 500W motor with red plug(code:8197)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-02b.png",
-    "page": 1,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 1
   },
   {
     "sku": "OXV8-02J",
     "name": "C80 Controller 48V 6A V4.0-EU Version( unlocked),for 250W motor with red plug (code:8508)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-02j.png",
-    "page": 1,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 1
   },
   {
     "sku": "OXV8-02H",
     "name": "C80 Pro controller 48V 6A V4.0-EU Version(locked 25km/h),for 250W motor with red plug(Code:7781)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-02h.png",
-    "page": 2,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 2
   },
   {
     "sku": "OXV8-02K",
     "name": "C80 Pro controller 48V 6A V4.0-EU Version( unlocked),for 250W motor with red plug(Code:8361)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-02k.png",
-    "page": 2,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 2
   },
   {
     "sku": "OXV8-02F",
     "name": "V8(C80) mini controller 36V 8A (locked 25km/h),for 250W motor with black plug(Code:7358)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-02f.png",
-    "page": 2,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 2
   },
   {
     "sku": "OXV8-02G",
     "name": "V8 Max old controller 48V 21A for 500W motor ,unlocked(6377)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-02g.png",
-    "page": 2,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 2
   },
   {
     "sku": "OXV8-02L",
     "name": "V8/V8 Max/C80 NEW controller for 500W motor,with red plug(9159)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-02l.png",
-    "page": 2,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 2
   },
   {
     "sku": "OXV8-02M",
     "name": "V8 ultra/V8 Pro/C80 Pro NEW controller for 500W motor,with red plug(9160)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-02m.png",
-    "page": 2,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 2
   },
   {
     "sku": "OXV8-03",
     "name": "M5 LCD Display V3.0-EU version(locked 25km/h)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-03.png",
-    "page": 2,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 2
   },
   {
     "sku": "OXV8-03C",
     "name": "M5 LCD Display V3.0-US version(speed 50km/h)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-03c.png",
-    "page": 2,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 2
   },
   {
     "sku": "OXV8-03E",
     "name": "48V NFC LCD Display with killswitch,V5.0,the speed can be ajdusted to 25/50km/h",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-03e.png",
-    "page": 2,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 2
   },
   {
     "sku": "OXV8-03H",
     "name": "48V NFC LCD Display,V5.0-EU version,locked 25km/h",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-03h.png",
-    "page": 2,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 2
   },
   {
     "sku": "OXV8-03L",
     "name": "48V new display with NFC V8/C80,the speed can be ajdusted to 25/50km/h",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-03l.png",
-    "page": 2,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 2
   },
   {
     "sku": "OXV8-03F",
     "name": "36V LCD Display V4.0,locked 25km/h V8/C80 mini",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-03f.png",
-    "page": 2,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 2
   },
   {
     "sku": "OXV8-03K",
     "name": "36V new display with NFC V8/C80 mini,the speed can be ajdusted to 25/50km/h",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-03k.png",
-    "page": 3,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 3
   },
   {
     "sku": "OXV8-59",
     "name": "20 inch V8/C80/GT20 48V display with NFC,speed 25-32-50km/h adjustable",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-59.png",
-    "page": 3,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 3
   },
   {
     "sku": "OXV8-60",
     "name": "Silicone cover HC80&M9 display",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-60.png",
-    "page": 3,
-    "priceCents": 990,
-    "demoPrice": true
+    "page": 3
   },
   {
     "sku": "OXV8-04",
     "name": "Twist Throttle with short handle grip",
     "category": "Cockpit",
     "imageAsset": "assets/products/oxv8-04.png",
-    "page": 3,
-    "priceCents": 3490,
-    "demoPrice": true
+    "page": 3
   },
   {
     "sku": "OXV8-04B",
     "name": "Twist Throttle (not original)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-04b.png",
-    "page": 3,
-    "priceCents": 3490,
-    "demoPrice": true
+    "page": 3
   },
   {
     "sku": "OXV8-04C",
@@ -257,8 +601,7 @@
     "category": "Cockpit",
     "imageAsset": "assets/products/oxv8-04c.png",
     "page": 3,
-    "priceCents": 3490,
-    "demoPrice": true
+    "priceCents": 4900
   },
   {
     "sku": "OXV8-05",
@@ -266,26 +609,21 @@
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-05.png",
     "page": 3,
-    "priceCents": 2990,
-    "demoPrice": true
+    "priceCents": 4500
   },
   {
     "sku": "OXV8-06",
     "name": "Right Speed Shifter Thumb SHIMANO 7 Gears",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-06.png",
-    "page": 3,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 3
   },
   {
     "sku": "OXV8-06B",
     "name": "Deralleur cable inner wire 2.4m",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-06b.png",
-    "page": 3,
-    "priceCents": 690,
-    "demoPrice": true
+    "page": 3
   },
   {
     "sku": "OXV8-07",
@@ -293,62 +631,49 @@
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-07.png",
     "page": 3,
-    "priceCents": 4990,
-    "demoPrice": true
+    "priceCents": 6500
   },
   {
     "sku": "OXV8-07B",
     "name": "Front light 5 Pin,turn signals(Back case is different with original)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-07b.png",
-    "page": 3,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 3
   },
   {
     "sku": "OXV8-07C",
     "name": "Original front light 5 Pin, turn signals",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-07c.png",
-    "page": 3,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 3
   },
   {
     "sku": "OXV8-07D",
     "name": "Original front light 6 Pin, turn signals&bluetooth",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-07d.png",
-    "page": 4,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 4
   },
   {
     "sku": "OXV8-07E",
     "name": "V8 modified front light 5 Pin, turn signals",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-07e.png",
-    "page": 4,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 4
   },
   {
     "sku": "OXV8-08",
     "name": "Tail light",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-08.png",
-    "page": 4,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 4
   },
   {
     "sku": "OXV8-09",
     "name": "Pedal Assist Sensor with cable",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-09.png",
-    "page": 4,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 4
   },
   {
     "sku": "OXV8-09B",
@@ -356,17 +681,14 @@
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-09b.png",
     "page": 4,
-    "priceCents": 1990,
-    "demoPrice": true
+    "priceCents": 1490
   },
   {
     "sku": "OXV8-09C",
     "name": "Pedal assist sensor(old model)",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-09c.png",
-    "page": 4,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 4
   },
   {
     "sku": "OXV8-10",
@@ -374,44 +696,35 @@
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-10.png",
     "page": 4,
-    "priceCents": 5990,
-    "demoPrice": true
+    "priceCents": 6500
   },
   {
     "sku": "OXV8-10B",
     "name": "Waterproof Main cable 5pin(2025 model,) (Connected headlight have turn signal function)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-10b.png",
-    "page": 4,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 4
   },
   {
     "sku": "OXV8-10C",
     "name": "Waterproof Main cable with turn signal&bluetooth function 6 pin,V8 ultra",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-10c.png",
-    "page": 4,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 4
   },
   {
     "sku": "OXV8-11",
     "name": "Right brake lever-V8 mini",
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-11.png",
-    "page": 4,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 4
   },
   {
     "sku": "OXV8-12",
     "name": "Left brake lever--V8 mini",
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-12.png",
-    "page": 4,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 4
   },
   {
     "sku": "OXV8-13",
@@ -419,80 +732,63 @@
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-13.png",
     "page": 4,
-    "priceCents": 18900,
-    "demoPrice": true
+    "priceCents": 13900
   },
   {
     "sku": "OXV8-13B",
     "name": "Zoom Hydraulic handle brake-A:2 finger",
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-13b.png",
-    "page": 5,
-    "priceCents": 8990,
-    "demoPrice": true
+    "page": 5
   },
   {
     "sku": "OXV8-13D",
     "name": "Zoom Hydraulic handle brake-B:4 finger",
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-13d.png",
-    "page": 5,
-    "priceCents": 8990,
-    "demoPrice": true
+    "page": 5
   },
   {
     "sku": "M-30E",
     "name": "Zoom brake pads for OXV8-13",
     "category": "Brakes",
     "imageAsset": "assets/products/m-30e.png",
-    "page": 5,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 5
   },
   {
     "sku": "OXV8-13C",
     "name": "Metal brake pads for OXV8-13",
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-13c.png",
-    "page": 5,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 5
   },
   {
     "sku": "RF-29E01D",
     "name": "Sintered brake pads for OXV8-13",
     "category": "Brakes",
     "imageAsset": "assets/products/rf-29e01d.png",
-    "page": 5,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 5
   },
   {
     "sku": "OXV8-14",
     "name": "Rear brake caliper-V8 mini",
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-14.png",
-    "page": 5,
-    "priceCents": 3490,
-    "demoPrice": true
+    "page": 5
   },
   {
     "sku": "OXV8-15",
     "name": "Front brake caliper-V8 mini",
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-15.png",
-    "page": 5,
-    "priceCents": 3490,
-    "demoPrice": true
+    "page": 5
   },
   {
     "sku": "OXV8-16",
     "name": "Brake pads for OXV8-14&OXV8-15",
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-16.png",
-    "page": 5,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 5
   },
   {
     "sku": "OXV8-17A",
@@ -500,89 +796,70 @@
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-17a.png",
     "page": 5,
-    "priceCents": 2490,
-    "demoPrice": true
+    "priceCents": 990
   },
   {
     "sku": "OXV8-17B",
     "name": "Brake disc 160mm Compaitble for hydrolic brake OXV8- 13",
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-17b.png",
-    "page": 5,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 5
   },
   {
     "sku": "OXV8-18",
     "name": "Rear brake cable",
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-18.png",
-    "page": 5,
-    "priceCents": 990,
-    "demoPrice": true
+    "page": 5
   },
   {
     "sku": "OXV8-19",
     "name": "Front brake cable",
     "category": "Brakes",
     "imageAsset": "assets/products/oxv8-19.png",
-    "page": 5,
-    "priceCents": 990,
-    "demoPrice": true
+    "page": 5
   },
   {
     "sku": "OXV8-21",
     "name": "20inch front fork",
     "category": "Suspension",
     "imageAsset": "assets/products/oxv8-21.png",
-    "page": 6,
-    "priceCents": 14900,
-    "demoPrice": true
+    "page": 6
   },
   {
     "sku": "OXV8-21B",
     "name": "16inch front fork -V8 mini",
     "category": "Suspension",
     "imageAsset": "assets/products/oxv8-21b.png",
-    "page": 6,
-    "priceCents": 12900,
-    "demoPrice": true
+    "page": 6
   },
   {
     "sku": "OXV8-57",
     "name": "Bowl set for front fork",
     "category": "Suspension",
     "imageAsset": "assets/products/oxv8-57.png",
-    "page": 6,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 6
   },
   {
     "sku": "OXV8-22",
     "name": "Handlebar Stem",
     "category": "Cockpit",
     "imageAsset": "assets/products/oxv8-22.png",
-    "page": 6,
-    "priceCents": 3990,
-    "demoPrice": true
+    "page": 6
   },
   {
     "sku": "OXV8-23",
     "name": "Handle bar Size: L700mm*H90 Handlebar stem diameter:31.8 Handlebar tube diameter: 22.2",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-23.png",
-    "page": 6,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 6
   },
   {
     "sku": "OXV8-24",
     "name": "Front & Rear fender",
     "category": "Other",
     "imageAsset": "assets/products/oxv8-24.png",
-    "page": 6,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 6
   },
   {
     "sku": "OXV8-25",
@@ -590,17 +867,14 @@
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-25.png",
     "page": 6,
-    "priceCents": 2490,
-    "demoPrice": true
+    "priceCents": 1200
   },
   {
     "sku": "OXV8-25B",
     "name": "Rear pedal",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-25b.png",
-    "page": 6,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 6
   },
   {
     "sku": "OXV8-26",
@@ -608,35 +882,28 @@
     "category": "Other",
     "imageAsset": "assets/products/oxv8-26.png",
     "page": 6,
-    "priceCents": 2490,
-    "demoPrice": true
+    "priceCents": 3900
   },
   {
     "sku": "OXV8-26B",
     "name": "Kickstand--V8 mini",
     "category": "Other",
     "imageAsset": "assets/products/oxv8-26b.png",
-    "page": 6,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 6
   },
   {
     "sku": "OXV8-27B",
     "name": "20inch Motor wheel 48V-500W Motor line on the left side-Red plug(GT)",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-27b.png",
-    "page": 6,
-    "priceCents": 34900,
-    "demoPrice": true
+    "page": 6
   },
   {
     "sku": "OXV8-27J",
     "name": "20inch motor wheel 48V-500W Motor line on the left side-Black plug(GT)",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-27j.png",
-    "page": 6,
-    "priceCents": 34900,
-    "demoPrice": true
+    "page": 6
   },
   {
     "sku": "OXV8-27D",
@@ -644,152 +911,119 @@
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-27d.png",
     "page": 7,
-    "priceCents": 34900,
-    "demoPrice": true
+    "priceCents": 48900
   },
   {
     "sku": "OXV8-40B",
     "name": "500W motor Black plug,cable on the right(GT)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-40b.png",
-    "page": 7,
-    "priceCents": 28900,
-    "demoPrice": true
+    "page": 7
   },
   {
     "sku": "OXV8-40C",
     "name": "500W motor Red plug,cable on the left(GT)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-40c.png",
-    "page": 7,
-    "priceCents": 28900,
-    "demoPrice": true
+    "page": 7
   },
   {
     "sku": "OXV8-40D",
     "name": "500W motor Black plug,cable on the left(GT)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-40d.png",
-    "page": 7,
-    "priceCents": 28900,
-    "demoPrice": true
+    "page": 7
   },
   {
     "sku": "OXV8-27C",
     "name": "20inch motor wheel 48V-250W Motor line on the right side -Black plug",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-27c.png",
-    "page": 7,
-    "priceCents": 29900,
-    "demoPrice": true
+    "page": 7
   },
   {
     "sku": "OXV8-27K",
     "name": "20inch motor wheel 48V-250W Motor line on the right side --Red plug",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-27k.png",
-    "page": 7,
-    "priceCents": 29900,
-    "demoPrice": true
+    "page": 7
   },
   {
     "sku": "OXV8-39",
     "name": "250W motor Red plug,cable on the right(GT)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-39.png",
-    "page": 7,
-    "priceCents": 24900,
-    "demoPrice": true
+    "page": 7
   },
   {
     "sku": "OXV8-39B",
     "name": "250W motor Black plug cable on the right(GT)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-39b.png",
-    "page": 7,
-    "priceCents": 24900,
-    "demoPrice": true
+    "page": 7
   },
   {
     "sku": "OXV8-39C",
     "name": "250W motor Red plug,cable on the right(WT)",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-39c.png",
-    "page": 7,
-    "priceCents": 24900,
-    "demoPrice": true
+    "page": 7
   },
   {
     "sku": "OXV8-27F",
     "name": "V8-mini 16inch motor wheel 36V 250W with temperature control fuction",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-27f.png",
-    "page": 7,
-    "priceCents": 27900,
-    "demoPrice": true
+    "page": 7
   },
   {
     "sku": "OXV8-48",
     "name": "V8 mini motor black plug cable on the right",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-48.png",
-    "page": 7,
-    "priceCents": 22900,
-    "demoPrice": true
+    "page": 7
   },
   {
     "sku": "OXV8-28",
     "name": "Front wheel 20inch Mg alloy not include tire",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-28.png",
-    "page": 7,
-    "priceCents": 12900,
-    "demoPrice": true
+    "page": 7
   },
   {
     "sku": "OXV8-28B",
     "name": "V8-250W front wheel 20inch not include tire",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-28b.png",
-    "page": 8,
-    "priceCents": 12900,
-    "demoPrice": true
+    "page": 8
   },
   {
     "sku": "OXV8-28C",
     "name": "V8-mini 16inch front wheel",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-28c.png",
-    "page": 8,
-    "priceCents": 12900,
-    "demoPrice": true
+    "page": 8
   },
   {
     "sku": "OXV8-52",
     "name": "Axle with screws for front wheel OXV8- 28",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-52.png",
-    "page": 8,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 8
   },
   {
     "sku": "BR-01",
     "name": "6200RS bearing 2pcs for front wheel OXV8-28",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/br-01.png",
-    "page": 8,
-    "priceCents": 990,
-    "demoPrice": true
+    "page": 8
   },
   {
     "sku": "OXV8-29",
     "name": "axle with sealed bearing integrated bottom bracket",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-29.png",
-    "page": 8,
-    "priceCents": 3490,
-    "demoPrice": true
+    "page": 8
   },
   {
     "sku": "OXV8-30",
@@ -797,8 +1031,7 @@
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-30.png",
     "page": 8,
-    "priceCents": 2490,
-    "demoPrice": true
+    "priceCents": 2500
   },
   {
     "sku": "OXV8-31",
@@ -806,17 +1039,14 @@
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-31.png",
     "page": 8,
-    "priceCents": 3990,
-    "demoPrice": true
+    "priceCents": 2100
   },
   {
     "sku": "OXV8-32",
     "name": "Freewheel",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-32.png",
-    "page": 8,
-    "priceCents": 2990,
-    "demoPrice": true
+    "page": 8
   },
   {
     "sku": "OXV8-33",
@@ -824,8 +1054,7 @@
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-33.png",
     "page": 8,
-    "priceCents": 6990,
-    "demoPrice": true
+    "priceCents": 6500
   },
   {
     "sku": "OXV8-33B",
@@ -833,17 +1062,14 @@
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-33b.png",
     "page": 8,
-    "priceCents": 6990,
-    "demoPrice": true
+    "priceCents": 6500
   },
   {
     "sku": "OXV8-34",
     "name": "Aluminium crankset for V8",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-34.png",
-    "page": 8,
-    "priceCents": 6990,
-    "demoPrice": true
+    "page": 8
   },
   {
     "sku": "OXV8-34B",
@@ -851,62 +1077,49 @@
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-34b.png",
     "page": 8,
-    "priceCents": 6990,
-    "demoPrice": true
+    "priceCents": 4900
   },
   {
     "sku": "OXV8-35",
     "name": "Striped seat V8&V20",
     "category": "Other",
     "imageAsset": "assets/products/oxv8-35.png",
-    "page": 9,
-    "priceCents": 7990,
-    "demoPrice": true
+    "page": 9
   },
   {
     "sku": "OXV8-35B",
     "name": "Plaid seat black 70cm V8 pro&C80 pro",
     "category": "Other",
     "imageAsset": "assets/products/oxv8-35b.png",
-    "page": 9,
-    "priceCents": 7990,
-    "demoPrice": true
+    "page": 9
   },
   {
     "sku": "OXV8-35C",
     "name": "Plaid seat black 55cm V8&V20",
     "category": "Other",
     "imageAsset": "assets/products/oxv8-35c.png",
-    "page": 9,
-    "priceCents": 7990,
-    "demoPrice": true
+    "page": 9
   },
   {
     "sku": "OXV8-36",
     "name": "Passenger Seat for V8",
     "category": "Other",
     "imageAsset": "assets/products/oxv8-36.png",
-    "page": 9,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 9
   },
   {
     "sku": "OXV8-36B",
     "name": "Passenger Seat for V8",
     "category": "Other",
     "imageAsset": "assets/products/oxv8-36b.png",
-    "page": 9,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 9
   },
   {
     "sku": "OXV8-37",
     "name": "Alarm for V8",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-37.png",
-    "page": 9,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 9
   },
   {
     "sku": "OXV8-38",
@@ -914,1124 +1127,875 @@
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-38.png",
     "page": 9,
-    "priceCents": 1490,
-    "demoPrice": true
+    "priceCents": 1200
   },
   {
     "sku": "OXV8-44",
     "name": "GT 250W motor clutch with 36T gears;Right-15mm aperture",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-44.png",
-    "page": 9,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 9
   },
   {
     "sku": "OXV8-44C",
     "name": "GT 250W motor clutch with 37T gears;Right-12mm aperture",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-44c.png",
-    "page": 9,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 9
   },
   {
     "sku": "OXV8-44B",
     "name": "WT 250W motor clutch with 37T gears;Right-12mm aperture",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-44b.png",
-    "page": 9,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 9
   },
   {
     "sku": "OXV8-46",
     "name": "GT 500W motor clutch with 36T gears,left-15mm aperture",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-46.png",
-    "page": 9,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 9
   },
   {
     "sku": "OXV8-47",
     "name": "GT 500W motor clutch with 36T gears,right-15mm aperture",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-47.png",
-    "page": 9,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 9
   },
   {
     "sku": "OXV8-49",
     "name": "Gear for GT*WT 500W motor 36T,608 bearing,47.5*13*8mm",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-49.png",
-    "page": 10,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 10
   },
   {
     "sku": "OXV8-49B",
     "name": "Gear for GT*WT 500W motor 36T,608 bearing,47.5*13*8mm PA66 material",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-49b.png",
-    "page": 10,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 10
   },
   {
     "sku": "OXV8-50",
     "name": "Gear for GT 250W motor 36T,608 bearing,38*12*8mm",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-50.png",
-    "page": 10,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 10
   },
   {
     "sku": "OXV8-50B",
     "name": "Gear for GT 250W motor 36T,608 bearing,38*12*8mm PA66 material",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-50b.png",
-    "page": 10,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 10
   },
   {
     "sku": "OXV8-50C",
     "name": "Gear for 250W motor 37T,608 bearing,39*11*8mm",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxv8-50c.png",
-    "page": 10,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 10
   },
   {
     "sku": "OXV8-51",
     "name": "V8 Max Converter",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-51.png",
-    "page": 10,
-    "priceCents": 3990,
-    "demoPrice": true
+    "page": 10
   },
   {
     "sku": "OXV8-53",
     "name": "Derailleur protector",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxv8-53.png",
-    "page": 10,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 10
   },
   {
     "sku": "OXV8-54",
     "name": "C80 Pro suspension,for 20 inch model center-to-center hole distance 25cm",
     "category": "Suspension",
     "imageAsset": "assets/products/oxv8-54.png",
-    "page": 10,
-    "priceCents": 8990,
-    "demoPrice": true
+    "page": 10
   },
   {
     "sku": "OXV8-55",
     "name": "C80 Pro red suspension,for 20 inch model center-to-center hole distance 25cm",
     "category": "Suspension",
     "imageAsset": "assets/products/oxv8-55.png",
-    "page": 10,
-    "priceCents": 8990,
-    "demoPrice": true
+    "page": 10
   },
   {
     "sku": "OXV8-56",
     "name": "V8 Pro/V8 Ultra red suspension,for 24 inch model, center-to-center hole distance 29cm",
     "category": "Suspension",
     "imageAsset": "assets/products/oxv8-56.png",
-    "page": 10,
-    "priceCents": 8990,
-    "demoPrice": true
+    "page": 10
   },
   {
     "sku": "OXV8-58",
     "name": "Charging port for V8/C80 battery",
     "category": "Electrics",
     "imageAsset": "assets/products/oxv8-58.png",
-    "page": 10,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 10
   },
   {
     "sku": "OXGT-01",
     "name": "GT 2000 charger,54.6V 4.5A,GX-16",
     "category": "Electrics",
     "imageAsset": "assets/products/oxgt-01.png",
-    "page": 10,
-    "priceCents": 11900,
-    "demoPrice": true
+    "page": 10
   },
   {
     "sku": "OXGT-02",
     "name": "GT 2000 unlocked controller 9020,black plug",
     "category": "Electrics",
     "imageAsset": "assets/products/oxgt-02.png",
-    "page": 11,
-    "priceCents": 19900,
-    "demoPrice": true
+    "page": 11
   },
   {
     "sku": "OXGT-02C",
     "name": "GT 2000 controller 9798,black plug,throttle 6km/h when locking and unlocking",
     "category": "Electrics",
     "imageAsset": "assets/products/oxgt-02c.png",
-    "page": 11,
-    "priceCents": 19900,
-    "demoPrice": true
+    "page": 11
   },
   {
     "sku": "OXGT-03",
     "name": "GT 2000 unlocked display",
     "category": "Electrics",
     "imageAsset": "assets/products/oxgt-03.png",
-    "page": 11,
-    "priceCents": 12900,
-    "demoPrice": true
+    "page": 11
   },
   {
     "sku": "OXGT-03B",
     "name": "GT 2000 locked display",
     "category": "Electrics",
     "imageAsset": "assets/products/oxgt-03b.png",
-    "page": 11,
-    "priceCents": 12900,
-    "demoPrice": true
+    "page": 11
   },
   {
     "sku": "OXGT-04",
     "name": "GT 2000 front light 5pin",
     "category": "Electrics",
     "imageAsset": "assets/products/oxgt-04.png",
-    "page": 11,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 11
   },
   {
     "sku": "OXGT-04B",
     "name": "GT 2000 front light 6pin",
     "category": "Electrics",
     "imageAsset": "assets/products/oxgt-04b.png",
-    "page": 11,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 11
   },
   {
     "sku": "OXGT-05",
     "name": "GT 2000 rear spoiler",
     "category": "Other",
     "imageAsset": "assets/products/oxgt-05.png",
-    "page": 11,
-    "priceCents": 3990,
-    "demoPrice": true
+    "page": 11
   },
   {
     "sku": "OXGT-16",
     "name": "GT 2000 universal front or rear fender,1pcs",
     "category": "Other",
     "imageAsset": "assets/products/oxgt-16.png",
-    "page": 11,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 11
   },
   {
     "sku": "OXGT-17",
     "name": "GT 2000 front fork fender fender",
     "category": "Suspension",
     "imageAsset": "assets/products/oxgt-17.png",
-    "page": 11,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 11
   },
   {
     "sku": "OXGT-18",
     "name": "GT 2000 small rear fender",
     "category": "Other",
     "imageAsset": "assets/products/oxgt-18.png",
-    "page": 11,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 11
   },
   {
     "sku": "OXGT-19",
     "name": "GT 2000 fender under seat",
     "category": "Other",
     "imageAsset": "assets/products/oxgt-19.png",
-    "page": 11,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 11
   },
   {
     "sku": "OXGT-06",
     "name": "GT 2000 rear light",
     "category": "Electrics",
     "imageAsset": "assets/products/oxgt-06.png",
-    "page": 11,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 11
   },
   {
     "sku": "OXGT-09",
     "name": "GT 2000 main cable,5pin for front light",
     "category": "Electrics",
     "imageAsset": "assets/products/oxgt-09.png",
-    "page": 12,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 12
   },
   {
     "sku": "OXGT-09B",
     "name": "GT 2000 main cable,6pin for front light",
     "category": "Electrics",
     "imageAsset": "assets/products/oxgt-09b.png",
-    "page": 12,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 12
   },
   {
     "sku": "OXGT-10",
     "name": "GT 2000 1500W motor with tire,green plug",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxgt-10.png",
-    "page": 12,
-    "priceCents": 59000,
-    "demoPrice": true
+    "page": 12
   },
   {
     "sku": "OXGT-11",
     "name": "GT 2000 1500W motor with tire, black plug",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxgt-11.png",
-    "page": 12,
-    "priceCents": 59000,
-    "demoPrice": true
+    "page": 12
   },
   {
     "sku": "OXGT-12",
     "name": "GT 2000 chain",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxgt-12.png",
-    "page": 12,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 12
   },
   {
     "sku": "OXGT-13",
     "name": "GT 2000 crank set",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxgt-13.png",
-    "page": 12,
-    "priceCents": 6990,
-    "demoPrice": true
+    "page": 12
   },
   {
     "sku": "OXGT-13B",
     "name": "GT2000 crank -L",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxgt-13b.png",
-    "page": 12,
-    "priceCents": 2990,
-    "demoPrice": true
+    "page": 12
   },
   {
     "sku": "OXGT-14",
     "name": "GT 2000 full set hydraulic oil brake 4 piston-4 finger",
     "category": "Brakes",
     "imageAsset": "assets/products/oxgt-14.png",
-    "page": 12,
-    "priceCents": 24900,
-    "demoPrice": true
+    "page": 12
   },
   {
     "sku": "OXGT-15",
     "name": "GT 2000 brake disc",
     "category": "Brakes",
     "imageAsset": "assets/products/oxgt-15.png",
-    "page": 12,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 12
   },
   {
     "sku": "OXGT-20",
     "name": "GT 2000 brake pads",
     "category": "Brakes",
     "imageAsset": "assets/products/oxgt-20.png",
-    "page": 12,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 12
   },
   {
     "sku": "OXGT-21",
     "name": "GT 2000 seat",
     "category": "Other",
     "imageAsset": "assets/products/oxgt-21.png",
-    "page": 12,
-    "priceCents": 7990,
-    "demoPrice": true
+    "page": 12
   },
   {
     "sku": "OXGT-22",
     "name": "GT2000 bottom bracket",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxgt-22.png",
-    "page": 12,
-    "priceCents": 3490,
-    "demoPrice": true
+    "page": 12
   },
   {
     "sku": "OXGT-23",
     "name": "GT2000 kickstand",
     "category": "Other",
     "imageAsset": "assets/products/oxgt-23.png",
-    "page": 13,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 13
   },
   {
     "sku": "OXGT-24",
     "name": "GT2000 battery;48V26ah",
     "category": "Electrics",
     "imageAsset": "assets/products/oxgt-24.png",
-    "page": 13,
-    "priceCents": 89000,
-    "demoPrice": true
+    "page": 13
   },
   {
     "sku": "OXGT-25",
     "name": "GT2000 motor clutch with gears",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxgt-25.png",
-    "page": 13,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 13
   },
   {
     "sku": "OXGT-25B",
     "name": "GT2000 gears",
     "category": "Drivetrain",
     "imageAsset": "assets/products/oxgt-25b.png",
-    "page": 13,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 13
   },
   {
     "sku": "OXGT-26",
     "name": "GT2000 front wheel(without tire)",
     "category": "Wheels & tyres",
     "imageAsset": "",
-    "page": 13,
-    "priceCents": 14900,
-    "demoPrice": true
+    "page": 13
   },
   {
     "sku": "OXGT-27",
     "name": "GT2000 front fork",
     "category": "Suspension",
     "imageAsset": "assets/products/oxgt-27.png",
-    "page": 13,
-    "priceCents": 24900,
-    "demoPrice": true
+    "page": 13
   },
   {
     "sku": "OXGT-28",
     "name": "GT2000 handle bar",
     "category": "Cockpit",
     "imageAsset": "",
-    "page": 13,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 13
   },
   {
     "sku": "OXGT-29",
     "name": "GT2000 suspension",
     "category": "Suspension",
     "imageAsset": "assets/products/oxgt-29.png",
-    "page": 13,
-    "priceCents": 8990,
-    "demoPrice": true
+    "page": 13
   },
   {
     "sku": "OXGT-30",
     "name": "GT2000 front axle",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/oxgt-30.png",
-    "page": 13,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 13
   },
   {
     "sku": "L-68A",
     "name": "70/100-19 outer tire Yuanxing GT2000",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/l-68a.png",
-    "page": 13,
-    "priceCents": 7990,
-    "demoPrice": true
+    "page": 13
   },
   {
     "sku": "L-68B",
     "name": "70/100-19 inner tube Yuanxing GT 2000",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/l-68b.png",
-    "page": 13,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 13
   },
   {
     "sku": "V20EB-01",
     "name": "V20 Controller locked,48V 21A,red plug for motor(for 500W motor)",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-01.png",
-    "page": 14,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 14
   },
   {
     "sku": "V20EB-01B",
     "name": "V20 Controller 45km/h,48V 21A,red plug for motor(for 500W Motor),throttle speed is 45km/h",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-01b.png",
-    "page": 14,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 14
   },
   {
     "sku": "V20EB-01G",
     "name": "V20 Controller 45km/h,48V 21A,red plug for motor(for 500W Motor),when display set max speed 25km/h,throttle speed is 6km/h.when display set max speed 45km/h,throttle speed can reach 45km/h",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-01g.png",
-    "page": 14,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 14
   },
   {
     "sku": "V20EB-01C",
     "name": "V20 Controller locked 25km/h,48V 15A,black plug for motor",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-01c.png",
-    "page": 14,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 14
   },
   {
     "sku": "V20EB-01D",
     "name": "V20 mini controller 36V 13A,black plug for motor.",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-01d.png",
-    "page": 14,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 14
   },
   {
     "sku": "V20EB-01F",
     "name": "V20 Controller,48V 15A,black plug for motor,30-32km/h",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-01f.png",
-    "page": 14,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 14
   },
   {
     "sku": "V20EB-01H",
     "name": "V20 controller for 48V750W motor-25A",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-01h.png",
-    "page": 14,
-    "priceCents": 16900,
-    "demoPrice": true
+    "page": 14
   },
   {
     "sku": "V20EB-01J",
     "name": "V20 controller, with remote lock and unlock functions,red plug,for 500W motor",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-01j.png",
-    "page": 14,
-    "priceCents": 13900,
-    "demoPrice": true
+    "page": 14
   },
   {
     "sku": "V20EB-02",
     "name": "H6C dashboard with killswitch Original speed is 25km/h,can be adjusted to 45 km/h by pressing the key V20",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-02.png",
-    "page": 14,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 14
   },
   {
     "sku": "V20EB-02C",
     "name": "V20 mini HS02 Display",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-02c.png",
-    "page": 14,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 14
   },
   {
     "sku": "V20EB-02D",
     "name": "V20 H6C dashboard,speed locked 25km/h",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-02d.png",
-    "page": 14,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 14
   },
   {
     "sku": "V20EB-02E",
     "name": "V20 NFC dashboard,speed 25-45km/h adjustable(original)",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-02e.png",
-    "page": 14,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 14
   },
   {
     "sku": "V20EB-02F",
     "name": "V20 H6C NFC dashboard,speed 25-45km/h adjustable",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-02f.png",
-    "page": 15,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 15
   },
   {
     "sku": "V20EB-02G",
     "name": "V20 NFC dashboard,speed locked 25km/h (original)",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-02g.png",
-    "page": 15,
-    "priceCents": 9990,
-    "demoPrice": true
+    "page": 15
   },
   {
     "sku": "V20EB-07",
     "name": "Pedal assist sensor with cable V20",
     "category": "Drivetrain",
     "imageAsset": "assets/products/v20eb-07.png",
-    "page": 15,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 15
   },
   {
     "sku": "V20EB-07B",
     "name": "Pedal assist sensor V20",
     "category": "Drivetrain",
     "imageAsset": "assets/products/v20eb-07b.png",
-    "page": 15,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 15
   },
   {
     "sku": "V20EB-07C",
     "name": "Pedal assist sensor V20 Mini",
     "category": "Drivetrain",
     "imageAsset": "assets/products/v20eb-07c.png",
-    "page": 15,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 15
   },
   {
     "sku": "V20EB-08",
     "name": "V20 3-in-1 switch",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-08.png",
-    "page": 15,
-    "priceCents": 2990,
-    "demoPrice": true
+    "page": 15
   },
   {
     "sku": "V20EB-09",
     "name": "Twist throttle V20",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-09.png",
-    "page": 15,
-    "priceCents": 3490,
-    "demoPrice": true
+    "page": 15
   },
   {
     "sku": "V20EB-09B",
     "name": "V20 Twist throttle with right handle grip(not original)",
     "category": "Cockpit",
     "imageAsset": "assets/products/v20eb-09b.png",
-    "page": 15,
-    "priceCents": 3490,
-    "demoPrice": true
+    "page": 15
   },
   {
     "sku": "V20EB-10",
     "name": "Headlight with bracket V20",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-10.png",
-    "page": 15,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 15
   },
   {
     "sku": "V20EB-10B",
     "name": "V20 Headlight with bracket(not original)",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-10b.png",
-    "page": 15,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 15
   },
   {
     "sku": "V20EB-10C",
     "name": "V20 mini bluetooth Headlight with bracket(not original),4 pin",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-10c.png",
-    "page": 15,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 15
   },
   {
     "sku": "V20EB-11",
     "name": "V20 Original taillight",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-11.png",
-    "page": 15,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 15
   },
   {
     "sku": "V20EB-11B",
     "name": "V20 Taillight(not original)",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-11b.png",
-    "page": 16,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 16
   },
   {
     "sku": "V20EB-11C",
     "name": "V20 Tail light extended cable",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-11c.png",
-    "page": 16,
-    "priceCents": 990,
-    "demoPrice": true
+    "page": 16
   },
   {
     "sku": "V20EB-12",
     "name": "V20 Integrated waterproof wire",
     "category": "Other",
     "imageAsset": "assets/products/v20eb-12.png",
-    "page": 16,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 16
   },
   {
     "sku": "V20EB-13",
     "name": "Battery for V20",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-13.png",
-    "page": 16,
-    "priceCents": 54900,
-    "demoPrice": true
+    "page": 16
   },
   {
     "sku": "V20EB-13B",
     "name": "V20 Battery bracket",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-13b.png",
-    "page": 16,
-    "priceCents": 3990,
-    "demoPrice": true
+    "page": 16
   },
   {
     "sku": "V20EB-13C",
     "name": "Battery 48V 15.6ah full capacity for V20",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-13c.png",
-    "page": 16,
-    "priceCents": 54900,
-    "demoPrice": true
+    "page": 16
   },
   {
     "sku": "V20EB-37",
     "name": "Battery with bracket for V20 mini",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-37.png",
-    "page": 16,
-    "priceCents": 39900,
-    "demoPrice": true
+    "page": 16
   },
   {
     "sku": "T-41B",
     "name": "Alarm with Remote",
     "category": "Electrics",
     "imageAsset": "assets/products/t-41b.png",
-    "page": 16,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 16
   },
   {
     "sku": "T-41E",
     "name": "Alarm with Remote A2",
     "category": "Electrics",
     "imageAsset": "assets/products/t-41e.png",
-    "page": 16,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 16
   },
   {
     "sku": "V20EB-14",
     "name": "V20 Front wheel",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/v20eb-14.png",
-    "page": 16,
-    "priceCents": 12900,
-    "demoPrice": true
+    "page": 16
   },
   {
     "sku": "V20EB-15",
     "name": "V20 Motor wheel 500W,Motor line on the right side -Red plug(GT)",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/v20eb-15.png",
-    "page": 16,
-    "priceCents": 34900,
-    "demoPrice": true
+    "page": 16
   },
   {
     "sku": "V20EB-15B",
     "name": "V20 Motor 500W,Motor line on the right side -Red plug(GT)",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-15b.png",
-    "page": 16,
-    "priceCents": 28900,
-    "demoPrice": true
+    "page": 16
   },
   {
     "sku": "V20EB-15C",
     "name": "V20 motor 250W,motor line on the right side- black plug(GT)",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-15c.png",
-    "page": 17,
-    "priceCents": 24900,
-    "demoPrice": true
+    "page": 17
   },
   {
     "sku": "V20EB-15D",
     "name": "V20 250W motor Black plug cable on the right(GT)",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-15d.png",
-    "page": 17,
-    "priceCents": 24900,
-    "demoPrice": true
+    "page": 17
   },
   {
     "sku": "V20EB-15F",
     "name": "V20 mini 16inch motor wheel,motor line on the right side,black plug",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/v20eb-15f.png",
-    "page": 17,
-    "priceCents": 27900,
-    "demoPrice": true
+    "page": 17
   },
   {
     "sku": "V20EB-16",
     "name": "V20 Charger 54.6V 2A DC 5.5*2.1 connection(old model)",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-16.png",
-    "page": 17,
-    "priceCents": 6990,
-    "demoPrice": true
+    "page": 17
   },
   {
     "sku": "V20EB-16B",
     "name": "V20 Charger 54.6V 2A GX16 connection(new model)",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-16b.png",
-    "page": 17,
-    "priceCents": 6990,
-    "demoPrice": true
+    "page": 17
   },
   {
     "sku": "V20EB-16C",
     "name": "42V2ACharger;DC 5.5*2.1 V20 mini",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-16c.png",
-    "page": 17,
-    "priceCents": 6990,
-    "demoPrice": true
+    "page": 17
   },
   {
     "sku": "V20EB-17",
     "name": "V20 Front fork",
     "category": "Suspension",
     "imageAsset": "assets/products/v20eb-17.png",
-    "page": 17,
-    "priceCents": 14900,
-    "demoPrice": true
+    "page": 17
   },
   {
     "sku": "V20EB-17B",
     "name": "Front fork V20 mini",
     "category": "Suspension",
     "imageAsset": "assets/products/v20eb-17b.png",
-    "page": 17,
-    "priceCents": 12900,
-    "demoPrice": true
+    "page": 17
   },
   {
     "sku": "V20EB-18",
     "name": "V20 Bottom bracket",
     "category": "Drivetrain",
     "imageAsset": "assets/products/v20eb-18.png",
-    "page": 17,
-    "priceCents": 3490,
-    "demoPrice": true
+    "page": 17
   },
   {
     "sku": "V20EB-19",
     "name": "V20 Handelbar",
     "category": "Other",
     "imageAsset": "assets/products/v20eb-19.png",
-    "page": 17,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 17
   },
   {
     "sku": "V20EB-20",
     "name": "V20 Handlebar Stem",
     "category": "Cockpit",
     "imageAsset": "assets/products/v20eb-20.png",
-    "page": 17,
-    "priceCents": 3990,
-    "demoPrice": true
+    "page": 17
   },
   {
     "sku": "V20EB-22",
     "name": "Crackset V20",
     "category": "Drivetrain",
     "imageAsset": "assets/products/v20eb-22.png",
-    "page": 17,
-    "priceCents": 6990,
-    "demoPrice": true
+    "page": 17
   },
   {
     "sku": "V20EB-22B",
     "name": "Crackset Prowheel V20",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/v20eb-22b.png",
-    "page": 18,
-    "priceCents": 6990,
-    "demoPrice": true
+    "page": 18
   },
   {
     "sku": "V20EB-22C",
     "name": "Crackset V20 mini",
     "category": "Drivetrain",
     "imageAsset": "assets/products/v20eb-22c.png",
-    "page": 18,
-    "priceCents": 6990,
-    "demoPrice": true
+    "page": 18
   },
   {
     "sku": "V20EB-23",
     "name": "V20 Chain",
     "category": "Drivetrain",
     "imageAsset": "assets/products/v20eb-23.png",
-    "page": 18,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 18
   },
   {
     "sku": "V20EB-24",
     "name": "V20 Pedal",
     "category": "Drivetrain",
     "imageAsset": "assets/products/v20eb-24.png",
-    "page": 18,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 18
   },
   {
     "sku": "V20EB-25",
     "name": "V20 Kickstand",
     "category": "Other",
     "imageAsset": "assets/products/v20eb-25.png",
-    "page": 18,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 18
   },
   {
     "sku": "V20EB-25B",
     "name": "16inch Kickstand V20 Mini",
     "category": "Other",
     "imageAsset": "assets/products/v20eb-25b.png",
-    "page": 18,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 18
   },
   {
     "sku": "V20EB-26",
     "name": "V20 Thumb Shifter",
     "category": "Drivetrain",
     "imageAsset": "assets/products/v20eb-26.png",
-    "page": 18,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 18
   },
   {
     "sku": "V20EB-27",
     "name": "V20 Rear Derailleur",
     "category": "Drivetrain",
     "imageAsset": "assets/products/v20eb-27.png",
-    "page": 18,
-    "priceCents": 3990,
-    "demoPrice": true
+    "page": 18
   },
   {
     "sku": "V20EB-28",
     "name": "V20 Freewheel",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/v20eb-28.png",
-    "page": 18,
-    "priceCents": 2990,
-    "demoPrice": true
+    "page": 18
   },
   {
     "sku": "V20EB-29B",
     "name": "V20 Front&Rear fender(not original)",
     "category": "Other",
     "imageAsset": "assets/products/v20eb-29b.png",
-    "page": 18,
-    "priceCents": 4990,
-    "demoPrice": true
+    "page": 18
   },
   {
     "sku": "V20EB-31",
     "name": "V20 Hand grips,1pcs long+1pcs short",
     "category": "Cockpit",
     "imageAsset": "assets/products/v20eb-31.png",
-    "page": 18,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 18
   },
   {
     "sku": "V20EB-31B",
     "name": "Handle grips,2pcs long model",
     "category": "Cockpit",
     "imageAsset": "assets/products/v20eb-31b.png",
-    "page": 18,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 18
   },
   {
     "sku": "V20EB-32",
     "name": "Suspension V20",
     "category": "Suspension",
     "imageAsset": "assets/products/v20eb-32.png",
-    "page": 19,
-    "priceCents": 8990,
-    "demoPrice": true
+    "page": 19
   },
   {
     "sku": "V20EB-32B",
     "name": "Suspension V20 Pro",
     "category": "Suspension",
     "imageAsset": "assets/products/v20eb-32b.png",
-    "page": 19,
-    "priceCents": 8990,
-    "demoPrice": true
+    "page": 19
   },
   {
     "sku": "S20EB-32",
     "name": "Suspension S20",
     "category": "Suspension",
     "imageAsset": "assets/products/s20eb-32.png",
-    "page": 19,
-    "priceCents": 8990,
-    "demoPrice": true
+    "page": 19
   },
   {
     "sku": "V20EB-33",
     "name": "V20 pedals",
     "category": "Drivetrain",
     "imageAsset": "assets/products/v20eb-33.png",
-    "page": 19,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 19
   },
   {
     "sku": "V20EB-35",
     "name": "V20 Logan full set hydraulic oil brake caliper&right and left brake lever",
     "category": "Brakes",
     "imageAsset": "assets/products/v20eb-35.png",
-    "page": 19,
-    "priceCents": 18900,
-    "demoPrice": true
+    "page": 19
   },
   {
     "sku": "V20EB-35B",
     "name": "V20 Logan right&left brake lever",
     "category": "Brakes",
     "imageAsset": "assets/products/v20eb-35b.png",
-    "page": 19,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 19
   },
   {
     "sku": "V20EB-36",
     "name": "V20 Brake disc 160/2.3mm",
     "category": "Brakes",
     "imageAsset": "assets/products/v20eb-36.png",
-    "page": 19,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 19
   },
   {
     "sku": "V20EB-38",
     "name": "V20 Sintered brake pads",
     "category": "Brakes",
     "imageAsset": "assets/products/v20eb-38.png",
-    "page": 19,
-    "priceCents": 1990,
-    "demoPrice": true
+    "page": 19
   },
   {
     "sku": "V20EB-39",
     "name": "V20 Motor extended cable,red plug,1.6m",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-39.png",
-    "page": 19,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 19
   },
   {
     "sku": "V20EB-40",
     "name": "V20 Motor extended cable,black plug,1.6m",
     "category": "Electrics",
     "imageAsset": "assets/products/v20eb-40.png",
-    "page": 19,
-    "priceCents": 2490,
-    "demoPrice": true
+    "page": 19
   },
   {
     "sku": "Q-1869B",
     "name": "Tire Pad Tape for 20*4.0 fat tyre;80mm",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/q-1869b.png",
-    "page": 19,
-    "priceCents": 990,
-    "demoPrice": true
+    "page": 19
   },
   {
     "sku": "KD001",
     "name": "20*4.0 outer tire KENDA K1188E",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/kd001.png",
-    "page": 19,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 19
   },
   {
     "sku": "KD002",
@@ -2039,151 +2003,118 @@
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/kd002.png",
     "page": 20,
-    "priceCents": 1490,
-    "demoPrice": true
+    "priceCents": 2200
   },
   {
     "sku": "KD014",
     "name": "20*4.0 outer tire KENDA K1167",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/kd014.png",
-    "page": 20,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 20
   },
   {
     "sku": "CT024",
     "name": "CST 20*4.0 tire",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/ct024.png",
-    "page": 20,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 20
   },
   {
     "sku": "CT025",
     "name": "20*4.2 inner tube CST,straight valve， SV-32mm",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/ct025.png",
-    "page": 20,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 20
   },
   {
     "sku": "CT024B",
     "name": "20*4.0 Outer tire;CST/SCOUT",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/ct024b.png",
-    "page": 20,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 20
   },
   {
     "sku": "CT024C",
     "name": "20*4.0 Outer tire;CST/AMBRO",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/ct024c.png",
-    "page": 20,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 20
   },
   {
     "sku": "NT004",
     "name": "20*4.0 inner tube",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/nt004.png",
-    "page": 20,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 20
   },
   {
     "sku": "G-27",
     "name": "20*4.0 thick tire and inner tube",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/g-27.png",
-    "page": 20,
-    "priceCents": 6990,
-    "demoPrice": true
+    "page": 20
   },
   {
     "sku": "EB-TY017",
     "name": "20*4.0 outer tire with 3mm puncture- resistant layer",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/eb-ty017.png",
-    "page": 20,
-    "priceCents": 6990,
-    "demoPrice": true
+    "page": 20
   },
   {
     "sku": "EB-TY014",
     "name": "20*4.0 snow outer tire with spikes",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/eb-ty014.png",
-    "page": 20,
-    "priceCents": 8990,
-    "demoPrice": true
+    "page": 20
   },
   {
     "sku": "G-25",
     "name": "16*4.0 tire and inner tube Chaoyang V8 mini&V20 mini",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/g-25.png",
-    "page": 20,
-    "priceCents": 6990,
-    "demoPrice": true
+    "page": 20
   },
   {
     "sku": "G-26",
     "name": "16*4.0 tire and inner tube",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/g-26.png",
-    "page": 20,
-    "priceCents": 6990,
-    "demoPrice": true
+    "page": 20
   },
   {
     "sku": "NT101",
     "name": "16*4.0 outer tire H902",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/nt101.png",
-    "page": 20,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 20
   },
   {
     "sku": "NT102",
     "name": "16*4.0 inner tube",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/nt102.png",
-    "page": 20,
-    "priceCents": 1490,
-    "demoPrice": true
+    "page": 20
   },
   {
     "sku": "EB-TY03",
     "name": "20*4.0 Outer tire;ARISUN",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/eb-ty03.png",
-    "page": 21,
-    "priceCents": 5990,
-    "demoPrice": true
+    "page": 21
   },
   {
     "sku": "KD005",
     "name": "26*4.0 outer tire KENDA K1188E",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/kd005.png",
-    "page": 21,
-    "priceCents": 6990,
-    "demoPrice": true
+    "page": 21
   },
   {
     "sku": "KD006",
     "name": "26*4.0 Inner tube KENDA",
     "category": "Wheels & tyres",
     "imageAsset": "assets/products/kd006.png",
-    "page": 21,
-    "priceCents": 1690,
-    "demoPrice": true
+    "page": 21
   }
 ]

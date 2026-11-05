@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'brand.dart';
+import 'catalog.dart';
 import 'firebase_config.dart';
 import 'offer_store.dart';
 
@@ -121,6 +122,24 @@ class _MembershipGateState extends State<_MembershipGate> {
       .snapshots(includeMetadataChanges: true);
   OfferStore? _store;
 
+  /// Opens the shared data, links the catalogue's supplier numbers for the
+  /// stock lookup and brings the database's prices up to the bundled
+  /// Molenstraat product list. A failed sync only means it runs again on the
+  /// next start.
+  OfferStore _openStore() {
+    final store = OfferStore(_db, widget.user.uid);
+    loadCatalog()
+        .then((catalog) {
+          store.useCatalog(catalog);
+          return store.syncListPrices(catalog);
+        })
+        .catchError((Object e) {
+          debugPrint('Listenpreise nicht synchronisiert: $e');
+          return 0;
+        });
+    return store;
+  }
+
   @override
   void dispose() {
     _store?.dispose();
@@ -152,7 +171,7 @@ class _MembershipGateState extends State<_MembershipGate> {
             _store = null;
             return _PendingPage(user: widget.user);
           }
-          final store = _store ??= OfferStore(_db, widget.user.uid);
+          final store = _store ??= _openStore();
           return widget.builder(store);
         },
       );

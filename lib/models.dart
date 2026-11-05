@@ -97,7 +97,7 @@ class CatalogProduct {
     required this.category,
     this.imageAsset = '',
     this.priceCents = 0,
-    this.demoPrice = false,
+    this.supplierSku = '',
   });
 
   final String sku;
@@ -107,11 +107,18 @@ class CatalogProduct {
   /// Empty when the catalog has no picture for this part.
   final String imageAsset;
 
-  /// Catalog sales price incl. VAT, 0 when unknown.
+  /// Sales price incl. VAT from the Molenstraat product list (bexio export),
+  /// 0 if the product is not in the list.
   final int priceCents;
 
-  /// True while [priceCents] is a placeholder, not a real shop price.
-  final bool demoPrice;
+  /// Supplier article number of a Molenstraat product (bexio "Code produit
+  /// (fournisseur)"), empty if unknown or shared by several products. The
+  /// Inventory app may keep the product's stock under this number.
+  final String supplierSku;
+
+  /// True for products with a price in the Molenstraat product list: it is
+  /// the current sales price and wins over stored prices.
+  bool get hasListPrice => priceCents > 0;
 
   factory CatalogProduct.fromJson(Map<String, dynamic> json) => CatalogProduct(
     sku: (json['sku'] as String? ?? '').trim(),
@@ -119,7 +126,7 @@ class CatalogProduct {
     category: (json['category'] as String? ?? '').trim(),
     imageAsset: (json['imageAsset'] as String? ?? '').trim(),
     priceCents: (json['priceCents'] as num?)?.toInt() ?? 0,
-    demoPrice: json['demoPrice'] as bool? ?? false,
+    supplierSku: (json['supplierSku'] as String? ?? '').trim(),
   );
 
   bool matches(String query) {
@@ -282,7 +289,6 @@ class RepairPreset {
     this.flatPriceCents = 0,
     this.partName = '',
     this.partPriceCents = 0,
-    this.demoPrice = false,
   });
 
   final String id;
@@ -292,10 +298,9 @@ class RepairPreset {
   /// Fixed price for the work; when set, it replaces labour time × rate.
   final int flatPriceCents;
   final String partName;
-  final int partPriceCents;
 
-  /// True while [partPriceCents] is a placeholder; editing the entry clears it.
-  final bool demoPrice;
+  /// 0 while the part has no price yet.
+  final int partPriceCents;
 
   bool get isFlat => flatPriceCents > 0;
 
@@ -330,7 +335,6 @@ class RepairPreset {
     if (isFlat) 'flatPriceCents': flatPriceCents,
     'partName': partName,
     'partPriceCents': partPriceCents,
-    if (demoPrice) 'demoPrice': true,
   };
 
   factory RepairPreset.fromJson(Map<String, dynamic> json) => RepairPreset(
@@ -340,13 +344,12 @@ class RepairPreset {
     flatPriceCents: (json['flatPriceCents'] as num?)?.toInt() ?? 0,
     partName: json['partName'] as String? ?? '',
     partPriceCents: (json['partPriceCents'] as num?)?.toInt() ?? 0,
-    demoPrice: json['demoPrice'] as bool? ?? false,
   );
 }
 
-/// Starter price list. Labour times are rough workshop estimates and part
-/// prices are demo prices (CHF incl. VAT, in line with the catalog's demo
-/// prices) until the real prices are entered.
+/// Starter price list. Labour times are rough workshop estimates. Part
+/// prices (CHF incl. VAT) come from the Molenstraat product list; parts not
+/// in the list have no price until one is entered.
 List<RepairPreset> defaultPresets() {
   var i = 0;
   RepairPreset p(
@@ -360,18 +363,17 @@ List<RepairPreset> defaultPresets() {
     labourMinutes: minutes,
     partName: part,
     partPriceCents: partPriceCents,
-    demoPrice: partPriceCents > 0,
   );
   return [
-    p('Platten beheben, Schlauch ersetzen', 30, 'Fatbike-Schlauch', 1490),
-    p('Reifen ersetzen', 30, 'Fatbike-Reifen', 5990),
-    p('Bremsbeläge ersetzen (pro Rad)', 20, 'Bremsbeläge', 1490),
-    p('Bremsscheibe ersetzen', 15, 'Bremsscheibe', 2490),
+    p('Platten beheben, Schlauch ersetzen', 30, 'Fatbike-Schlauch', 2200),
+    p('Reifen ersetzen', 30, 'Fatbike-Reifen', 6500),
+    p('Bremsbeläge ersetzen (pro Rad)', 20, 'Bremsbeläge (Paar)', 750),
+    p('Bremsscheibe ersetzen', 15, 'Bremsscheibe', 990),
     p('Bremse entlüften', 30),
-    p('Kette ersetzen', 15, 'Kette', 2490),
+    p('Kette ersetzen', 15, 'Kette', 2500),
     p('Schaltung einstellen', 20),
-    p('Schaltzug ersetzen', 30, 'Schaltzug', 690),
-    p('Speiche ersetzen', 30, 'Speiche', 290),
+    p('Schaltzug ersetzen', 30, 'Schaltzug'),
+    p('Speiche ersetzen', 30, 'Speiche'),
     p('Laufrad zentrieren', 30),
     p('Licht reparieren', 30),
     p('Elektrik-/Akku-Diagnose', 30),
@@ -383,7 +385,58 @@ List<RepairPreset> defaultPresets() {
       ('Umfangreiche Reparatur', 150),
     ])
       RepairPreset(id: 'flat-$chf', name: name, flatPriceCents: chf * 100),
+    servicePreset(),
   ];
+}
+
+/// Flat rate for a service on site, CHF 150.
+RepairPreset servicePreset() => RepairPreset(
+  id: 'flat-service',
+  name: 'Service Pauschale: inkl. Anfahrtskosten, Montage, Reparatur.',
+  flatPriceCents: 15000,
+);
+
+/// Part prices of the first starter price list, replaced by the prices of
+/// the Molenstraat product list: old part name and demo price → new part
+/// name and price.
+const _listPricedParts = {
+  ('Fatbike-Schlauch', 1490): ('Fatbike-Schlauch', 2200),
+  ('Fatbike-Reifen', 5990): ('Fatbike-Reifen', 6500),
+  ('Bremsbeläge', 1490): ('Bremsbeläge (Paar)', 750),
+  ('Bremsscheibe', 2490): ('Bremsscheibe', 990),
+  ('Kette', 2490): ('Kette', 2500),
+};
+
+/// Reads a stored price list and drops the demo prices of the first starter
+/// price list: parts in the Molenstraat product list get the list price,
+/// other demo prices (still flagged `demoPrice`) are removed. Prices
+/// entered by hand are kept.
+List<RepairPreset> presetsFromStored(List<Object?> items) => [
+  for (final row in items)
+    _presetFromStored(Map<String, dynamic>.from(row as Map)),
+];
+
+/// True if a stored price list still has demo prices that
+/// [presetsFromStored] replaces or removes.
+bool storedPresetsHaveDemoPrices(List<Object?> items) => items.any((row) {
+  final json = Map<String, dynamic>.from(row as Map);
+  final p = RepairPreset.fromJson(json);
+  return json['demoPrice'] == true ||
+      _listPricedParts.containsKey((p.partName, p.partPriceCents));
+});
+
+RepairPreset _presetFromStored(Map<String, dynamic> json) {
+  final p = RepairPreset.fromJson(json);
+  final listed = _listPricedParts[(p.partName, p.partPriceCents)];
+  if (listed == null && json['demoPrice'] != true) return p;
+  return RepairPreset(
+    id: p.id,
+    name: p.name,
+    labourMinutes: p.labourMinutes,
+    flatPriceCents: p.flatPriceCents,
+    partName: listed?.$1 ?? p.partName,
+    partPriceCents: listed?.$2 ?? 0,
+  );
 }
 
 /// Molenstraat's usual bike models, offered as quick picks in the editor.

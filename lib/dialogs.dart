@@ -47,7 +47,7 @@ class _LineDialog extends StatefulWidget {
   final OfferLine? line;
   final bool isNew;
 
-  /// Shown under the price field, e.g. a warning about a demo price.
+  /// Shown under the price field, e.g. a hint that the price is missing.
   final String? priceNote;
   final LineKind kind;
   final int hourlyRateCents;
@@ -241,7 +241,7 @@ String presetSummary(RepairPreset p, int hourlyRateCents, String currency) {
     else if (p.labourMinutes > 0)
       '${p.labourMinutes} Min. Arbeit',
     if (p.partName.isNotEmpty)
-      '${p.partName} ${p.partPriceCents > 0 ? formatMoney(p.partPriceCents, currency) + (p.demoPrice ? ' (Demo)' : '') : '(Preis fehlt)'}',
+      '${p.partName} ${p.partPriceCents > 0 ? formatMoney(p.partPriceCents, currency) : '(Preis fehlt)'}',
   ];
   final total = p
       .toLines(hourlyRateCents)

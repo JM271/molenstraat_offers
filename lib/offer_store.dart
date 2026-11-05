@@ -53,7 +53,14 @@ class OfferStore extends ChangeNotifier {
   List<RepairPreset> _presets = defaultPresets();
   ShopSettings _settings = const ShopSettings();
   final Map<String, int> _partPrices = {};
-  final Map<String, StockLevel> _stock = {};
+
+  /// Inventory parts by document ID, and their IDs by every number they are
+  /// known under (SKU, own product number, supplier order number).
+  final Map<String, _StockedPart> _stockParts = {};
+  final Map<String, Set<String>> _stockPartsByNumber = {};
+
+  /// Supplier number per Molenstraat product SKU, from the catalogue.
+  final Map<String, String> _supplierSkus = {};
   final List<CatalogProduct> _customProducts = [];
   final Map<String, int> _lastNumbers = {};
 
@@ -153,16 +160,28 @@ class OfferStore extends ChangeNotifier {
     watch('parts', workshop.collection('parts').snapshots(), (
       QuerySnapshot<Map<String, dynamic>> s,
     ) {
-      _stock.clear();
+      _stockParts.clear();
+      _stockPartsByNumber.clear();
       for (final doc in s.docs) {
         final data = doc.data();
-        final sku = _skuKey(data['sku'] as String? ?? '');
-        if (sku.isEmpty) continue;
-        final level = StockLevel(
-          workshop: (data['quantity'] as num?)?.toInt() ?? 0,
-          car: (data['carQuantity'] as num?)?.toInt() ?? 0,
+        String number(String field) =>
+            data[field] is String ? _skuKey(data[field] as String) : '';
+        final numbers = {
+          number('sku'),
+          number('productNumber'),
+          number('orderNumber'),
+        }..remove('');
+        if (numbers.isEmpty) continue;
+        _stockParts[doc.id] = _StockedPart(
+          productNumber: number('productNumber'),
+          level: StockLevel(
+            workshop: (data['quantity'] as num?)?.toInt() ?? 0,
+            car: (data['carQuantity'] as num?)?.toInt() ?? 0,
+          ),
         );
-        _stock[sku] = (_stock[sku] ?? const StockLevel()) + level;
+        for (final n in numbers) {
+          (_stockPartsByNumber[n] ??= {}).add(doc.id);
+        }
       }
     });
     watch('catalog', workshop.collection('catalog').snapshots(), (
@@ -198,10 +217,7 @@ class OfferStore extends ChangeNotifier {
   ) {
     final items = s.data()?['items'];
     if (items is! List) return defaultPresets();
-    return [
-      for (final row in items)
-        RepairPreset.fromJson(Map<String, dynamic>.from(row as Map)),
-    ];
+    return presetsFromStored(items);
   }
 
   @override
@@ -212,8 +228,38 @@ class OfferStore extends ChangeNotifier {
     super.dispose();
   }
 
+  /// Lets [stockFor] find Molenstraat products that the Inventory app keeps
+  /// under their supplier number.
+  void useCatalog(Iterable<CatalogProduct> catalog) {
+    _supplierSkus
+      ..clear()
+      ..addAll({
+        for (final p in catalog)
+          if (p.supplierSku.isNotEmpty) _skuKey(p.sku): _skuKey(p.supplierSku),
+      });
+    notifyListeners();
+  }
+
   /// Stock of a SKU in the Inventory app, null if it is not stocked there.
-  StockLevel? stockFor(String sku) => _stock[_skuKey(sku)];
+  /// A part counts if the SKU is its SKU, own product number or supplier
+  /// order number. For a Molenstraat product, parts under its supplier
+  /// number count too, unless the Inventory app assigned them to another
+  /// product number. Each part counts once.
+  StockLevel? stockFor(String sku) {
+    final key = _skuKey(sku);
+    final ids = {...?_stockPartsByNumber[key]};
+    final supplier = _supplierSkus[key];
+    if (supplier != null) {
+      for (final id in _stockPartsByNumber[supplier] ?? const <String>{}) {
+        final assigned = _stockParts[id]!.productNumber;
+        if (assigned.isEmpty || assigned == supplier || assigned == key) {
+          ids.add(id);
+        }
+      }
+    }
+    if (ids.isEmpty) return null;
+    return ids.map((id) => _stockParts[id]!.level).reduce((a, b) => a + b);
+  }
 
   /// Creates an unsaved offer. Its number is provisional: saving reserves the
   /// next free number, which may differ if someone else saved one meanwhile.
@@ -292,31 +338,25 @@ class OfferStore extends ChangeNotifier {
   /// Number of SKUs with a price in the shared database.
   int get savedPartPriceCount => _partPrices.length;
 
-  /// Price to offer for a catalogue part: the price in the shared database
-  /// if there is one, otherwise the price bundled with the app.
-  int priceFor(CatalogProduct product) {
-    final saved = savedPartPrice(product.sku);
-    return saved > 0 ? saved : product.priceCents;
-  }
-
-  /// True while a part only has the bundled demo price.
-  bool isDemoPrice(CatalogProduct product) =>
-      product.demoPrice && savedPartPrice(product.sku) <= 0;
+  /// Price to offer for a catalogue part: the list price of the Molenstraat
+  /// product list, otherwise the price in the shared database, 0 if there is
+  /// none.
+  int priceFor(CatalogProduct product) =>
+      product.hasListPrice ? product.priceCents : savedPartPrice(product.sku);
 
   /// Saves prices of catalogue parts used in an offer to the shared
-  /// database, so every device fills them in next time. An unchanged
-  /// bundled (demo) price is not saved, so it stays marked as demo. Lines
-  /// without SKU or without price are ignored.
+  /// database, so every device fills them in next time. Parts with a list
+  /// price ([hasListPrice]) keep it: a price changed on the offer applies to
+  /// that offer only. Lines without SKU or without price are ignored.
   Future<void> rememberPartPrices(
     Iterable<OfferLine> lines, {
-    required int Function(String sku) catalogPriceOf,
+    bool Function(String sku) hasListPrice = _never,
   }) => _writePartPrices({
     for (final line in lines)
       if (line.kind == LineKind.part &&
           line.sku.isNotEmpty &&
           line.unitPriceCents > 0 &&
-          (savedPartPrice(line.sku) > 0 ||
-              line.unitPriceCents != catalogPriceOf(line.sku)))
+          !hasListPrice(line.sku))
         _skuKey(line.sku): line.unitPriceCents,
   });
 
@@ -326,6 +366,32 @@ class OfferStore extends ChangeNotifier {
     for (final MapEntry(:key, :value) in prices.entries)
       if (value > 0) _skuKey(key): value,
   });
+
+  static bool _never(String sku) => false;
+
+  /// Writes the prices of the Molenstraat product list into the shared
+  /// database: every list product's price in `partPrices`, and a stored
+  /// price list without the old demo part prices (see [presetsFromStored])
+  /// and with the [servicePreset]. The price list is only updated while it
+  /// still has demo prices, so entries deleted later stay deleted.
+  /// Only what differs is written, so this is cheap to run on every start.
+  /// Returns how many part prices changed.
+  Future<int> syncListPrices(Iterable<CatalogProduct> catalog) async {
+    await loaded;
+    final changed = await _writePartPrices({
+      for (final p in catalog)
+        if (p.hasListPrice) _skuKey(p.sku): p.priceCents,
+    });
+    final stored = (await _presetsRef.get()).data()?['items'];
+    if (stored is List && storedPresetsHaveDemoPrices(stored)) {
+      // _presetsFrom replaces the demo prices; writing back stores that.
+      await _updatePresets((presets) {
+        final service = servicePreset();
+        if (!presets.any((p) => p.id == service.id)) presets.add(service);
+      });
+    }
+    return changed;
+  }
 
   Future<int> _writePartPrices(Map<String, int> prices) async {
     final changed = {
@@ -349,4 +415,12 @@ class OfferStore extends ChangeNotifier {
     notifyListeners();
     return changed.length;
   }
+}
+
+class _StockedPart {
+  const _StockedPart({required this.productNumber, required this.level});
+
+  /// Own product number stored by the Inventory app, empty if none.
+  final String productNumber;
+  final StockLevel level;
 }

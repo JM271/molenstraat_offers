@@ -34,10 +34,13 @@ List<CatalogProduct> parseCatalog(String json) => [
     CatalogProduct.fromJson(Map<String, dynamic>.from(row as Map)),
 ].where((p) => p.sku.isNotEmpty && p.name.isNotEmpty).toList();
 
-/// Catalog price per SKU, for parts already on an offer.
-Future<int Function(String sku)> catalogPriceLookup() async {
-  final prices = {for (final p in await loadCatalog()) p.sku: p.priceCents};
-  return (sku) => prices[sku] ?? 0;
+/// Whether a SKU has a price in the Molenstraat product list.
+Future<bool Function(String sku)> catalogListPriceLookup() async {
+  final listed = {
+    for (final p in await loadCatalog())
+      if (p.hasListPrice) p.sku.toUpperCase(),
+  };
+  return (sku) => listed.contains(sku.toUpperCase());
 }
 
 /// Short stock text such as "Lager 3" or "Lager 2 + 1 Auto".
@@ -57,7 +60,6 @@ List<String> catalogCategories(List<CatalogProduct> products) => [
 Future<CatalogProduct?> showCatalogPicker(
   BuildContext context, {
   required int Function(CatalogProduct product) priceOf,
-  required bool Function(CatalogProduct product) isDemoPrice,
   required String currency,
   List<CatalogProduct> extraProducts = const [],
   StockLevel? Function(String sku)? stockOf,
@@ -67,7 +69,6 @@ Future<CatalogProduct?> showCatalogPicker(
   showDragHandle: true,
   builder: (_) => _CatalogPicker(
     priceOf: priceOf,
-    isDemoPrice: isDemoPrice,
     currency: currency,
     extraProducts: extraProducts,
     stockOf: stockOf,
@@ -77,14 +78,12 @@ Future<CatalogProduct?> showCatalogPicker(
 class _CatalogPicker extends StatefulWidget {
   const _CatalogPicker({
     required this.priceOf,
-    required this.isDemoPrice,
     required this.currency,
     required this.extraProducts,
     required this.stockOf,
   });
 
   final int Function(CatalogProduct product) priceOf;
-  final bool Function(CatalogProduct product) isDemoPrice;
   final String currency;
   final List<CatalogProduct> extraProducts;
   final StockLevel? Function(String sku)? stockOf;
@@ -131,27 +130,8 @@ class _CatalogPickerState extends State<_CatalogPicker> {
                   (_query.isEmpty || p.matches(_query)),
             )
             .toList();
-        final scheme = Theme.of(context).colorScheme;
         return Column(
           children: [
-            if (products.any(widget.isDemoPrice))
-              Container(
-                width: double.infinity,
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: scheme.errorContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Preise mit „(Demo)“ sind Demopreise und nicht '
-                  'verbindlich. Vor dem Versand prüfen.',
-                  style: TextStyle(color: scheme.onErrorContainer),
-                ),
-              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: TextField(
@@ -205,8 +185,7 @@ class _CatalogPickerState extends State<_CatalogPicker> {
                         return _ProductCard(
                           product: p,
                           price: price > 0
-                              ? formatMoney(price, widget.currency) +
-                                    (widget.isDemoPrice(p) ? ' (Demo)' : '')
+                              ? formatMoney(price, widget.currency)
                               : 'Preis fehlt',
                           stock: widget.stockOf?.call(p.sku),
                           onTap: () => Navigator.of(context).pop(p),
@@ -344,6 +323,7 @@ class PriceListImport {
     required this.prices,
     required this.unknownSkus,
     required this.invalidLines,
+    this.listSkus = const [],
   });
 
   /// Known SKU (upper case) → price in cents.
@@ -354,17 +334,27 @@ class PriceListImport {
 
   /// Lines without a readable SKU and price, e.g. a header.
   final List<String> invalidLines;
+
+  /// SKUs of the Molenstraat product list, which keep their list price.
+  final List<String> listSkus;
 }
 
 /// Reads one SKU and price per line: the first column is the SKU, the last
 /// non-empty column the price. Columns are separated by tabs (pasted from
 /// Excel), semicolons or commas. Prices may be written as `24.90`, `24,90`,
-/// `24.-` or `CHF 24.90`.
-PriceListImport parsePriceList(String text, Set<String> knownSkus) {
+/// `24.-` or `CHF 24.90`. SKUs in [listSkus] are skipped: their price comes
+/// from the Molenstraat product list.
+PriceListImport parsePriceList(
+  String text,
+  Set<String> knownSkus, {
+  Set<String> listSkus = const {},
+}) {
   final known = {for (final sku in knownSkus) sku.trim().toUpperCase()};
+  final listed = {for (final sku in listSkus) sku.trim().toUpperCase()};
   final prices = <String, int>{};
   final unknown = <String>[];
   final invalid = <String>[];
+  final fixed = <String>[];
   for (final raw in const LineSplitter().convert(text)) {
     final line = raw.trim();
     if (line.isEmpty) continue;
@@ -385,7 +375,9 @@ PriceListImport parsePriceList(String text, Set<String> knownSkus) {
       continue;
     }
     final sku = fields.first.toUpperCase();
-    if (known.contains(sku)) {
+    if (listed.contains(sku)) {
+      fixed.add(fields.first);
+    } else if (known.contains(sku)) {
       prices[sku] = price;
     } else {
       unknown.add(fields.first);
@@ -395,6 +387,7 @@ PriceListImport parsePriceList(String text, Set<String> knownSkus) {
     prices: prices,
     unknownSkus: unknown,
     invalidLines: invalid,
+    listSkus: fixed,
   );
 }
 
@@ -402,16 +395,26 @@ PriceListImport parsePriceList(String text, Set<String> knownSkus) {
 Future<Map<String, int>?> showPriceImportDialog(
   BuildContext context, {
   required Set<String> knownSkus,
+  Set<String> listSkus = const {},
   required String currency,
 }) => showDialog<Map<String, int>>(
   context: context,
-  builder: (_) => _PriceImportDialog(knownSkus: knownSkus, currency: currency),
+  builder: (_) => _PriceImportDialog(
+    knownSkus: knownSkus,
+    listSkus: listSkus,
+    currency: currency,
+  ),
 );
 
 class _PriceImportDialog extends StatefulWidget {
-  const _PriceImportDialog({required this.knownSkus, required this.currency});
+  const _PriceImportDialog({
+    required this.knownSkus,
+    required this.listSkus,
+    required this.currency,
+  });
 
   final Set<String> knownSkus;
+  final Set<String> listSkus;
   final String currency;
 
   @override
@@ -431,7 +434,7 @@ class _PriceImportDialogState extends State<_PriceImportDialog> {
   void _parse(String text) => setState(
     () => _result = text.trim().isEmpty
         ? null
-        : parsePriceList(text, widget.knownSkus),
+        : parsePriceList(text, widget.knownSkus, listSkus: widget.listSkus),
   );
 
   @override
@@ -474,6 +477,11 @@ class _PriceImportDialogState extends State<_PriceImportDialog> {
                     '${result.unknownSkus.length} unbekannte Artikelnummern '
                     'werden ignoriert: ${sample(result.unknownSkus)}',
                     style: TextStyle(color: error),
+                  ),
+                if (result.listSkus.isNotEmpty)
+                  Text(
+                    '${result.listSkus.length} Artikel aus der Produktliste '
+                    'behalten den Listenpreis: ${sample(result.listSkus)}',
                   ),
                 if (result.invalidLines.isNotEmpty)
                   Text(

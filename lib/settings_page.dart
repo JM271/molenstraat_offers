@@ -85,6 +85,10 @@ class _SettingsPageState extends State<SettingsPage> {
       knownSkus: {
         for (final p in [...products, ...widget.store.customProducts]) p.sku,
       },
+      listSkus: {
+        for (final p in products)
+          if (p.hasListPrice) p.sku,
+      },
       currency: widget.store.settings.currency,
     );
     if (prices == null || !mounted) return;
@@ -113,17 +117,21 @@ class _SettingsPageState extends State<SettingsPage> {
       return ListenableBuilder(
         listenable: widget.store,
         builder: (context, _) {
-          final priced = products
-              .where((p) => widget.store.savedPartPrice(p.sku) > 0)
+          final listed = products.where((p) => p.hasListPrice).length;
+          final saved = products
+              .where(
+                (p) =>
+                    !p.hasListPrice && widget.store.savedPartPrice(p.sku) > 0,
+              )
               .length;
-          final demo = products.where(widget.store.isDemoPrice).length;
+          final missing = products.length - listed - saved;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '$priced von ${products.length} Katalogteilen haben einen '
-                'gespeicherten Preis.'
-                '${demo > 0 ? ' $demo zeigen noch Demopreise.' : ''}',
+                '$listed von ${products.length} Katalogteilen haben einen '
+                'Preis aus der Produktliste, $saved einen gespeicherten Preis.'
+                '${missing > 0 ? ' $missing haben noch keinen Preis.' : ''}',
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
