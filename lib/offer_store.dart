@@ -250,22 +250,19 @@ class OfferStore extends ChangeNotifier {
   /// numbers.
   void _listenToBexio() {
     _subscriptions.add(
-      workshop
-          .collection('bexioOffers')
-          .snapshots()
-          .listen(
-            (s) {
-              _bexioLinks
-                ..clear()
-                ..addAll({
-                  for (final doc in s.docs)
-                    doc.id: ?_tryParse(() => BexioLink.fromJson(doc.data())),
-                });
-              notifyListeners();
-            },
-            onError: (Object error) =>
-                debugPrint('bexio links not readable: $error'),
-          ),
+      workshop.collection('bexioOffers').snapshots().listen(
+        (s) {
+          _bexioLinks
+            ..clear()
+            ..addAll({
+              for (final doc in s.docs)
+                doc.id: ?_tryParse(() => BexioLink.fromJson(doc.data())),
+            });
+          notifyListeners();
+        },
+        onError: (Object error) =>
+            debugPrint('bexio links not readable: $error'),
+      ),
     );
   }
 

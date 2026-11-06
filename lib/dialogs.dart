@@ -6,6 +6,21 @@ import 'models.dart';
 String moneyInput(int cents) =>
     cents <= 0 ? '' : formatMoney(cents, '').replaceAll("'", '');
 
+/// A discount as typed, e.g. `10`, `12.5` or `12,5`; empty is no discount.
+String percentInput(double percent) =>
+    percent <= 0 ? '' : formatQuantity(percent);
+
+double? parsePercent(String input) {
+  final text = input.trim().replaceAll('%', '').trim();
+  if (text.isEmpty) return 0;
+  final value = double.tryParse(text.replaceAll(',', '.'));
+  if (value == null || value < 0 || value > 100) return null;
+  return value;
+}
+
+String? validatePercent(String? value) =>
+    parsePercent(value ?? '') == null ? 'Prozent von 0 bis 100' : null;
+
 String? validateMoney(String? value, {bool required = false}) {
   final text = value?.trim() ?? '';
   if (text.isEmpty) return required ? 'Betrag eingeben' : null;
@@ -82,13 +97,20 @@ class _LineDialogState extends State<_LineDialog> {
     ),
   );
 
+  late final _discount = TextEditingController(
+    text: percentInput(widget.line?.discountPercent ?? 0),
+  );
+
   @override
   void dispose() {
     _description.dispose();
     _quantity.dispose();
     _price.dispose();
+    _discount.dispose();
     super.dispose();
   }
+
+  bool get _free => parsePercent(_discount.text) == 100;
 
   void _setKind(LineKind kind) {
     setState(() => _kind = kind);
@@ -111,6 +133,7 @@ class _LineDialogState extends State<_LineDialog> {
         unitPriceCents: parseMoney(_price.text) ?? 0,
         // A catalog article number only makes sense on a part.
         sku: _kind == LineKind.part ? _sku : '',
+        discountPercent: parsePercent(_discount.text) ?? 0,
       ),
     );
   }
@@ -202,6 +225,36 @@ class _LineDialogState extends State<_LineDialog> {
                 validator: validateMoney,
                 onFieldSubmitted: (_) => _submit(),
               ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _discount,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'Rabatt (%)',
+                        hintText: 'z.B. 10',
+                      ),
+                      validator: validatePercent,
+                      onChanged: (_) => setState(() {}),
+                      onFieldSubmitted: (_) => _submit(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: FilterChip(
+                      label: const Text('Gratis'),
+                      selected: _free,
+                      onSelected: (on) =>
+                          setState(() => _discount.text = on ? '100' : ''),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -215,6 +268,133 @@ class _LineDialogState extends State<_LineDialog> {
       ],
     );
   }
+}
+
+/// Edits the discount on the whole offer. Returns null when cancelled and an
+/// empty discount ([OfferDiscount.isEmpty]) when it is removed.
+Future<OfferDiscount?> showDiscountDialog(
+  BuildContext context, {
+  OfferDiscount? discount,
+  required String currency,
+}) => showDialog<OfferDiscount>(
+  context: context,
+  builder: (_) => _DiscountDialog(discount: discount, currency: currency),
+);
+
+class _DiscountDialog extends StatefulWidget {
+  const _DiscountDialog({required this.discount, required this.currency});
+
+  final OfferDiscount? discount;
+  final String currency;
+
+  @override
+  State<_DiscountDialog> createState() => _DiscountDialogState();
+}
+
+class _DiscountDialogState extends State<_DiscountDialog> {
+  final _form = GlobalKey<FormState>();
+  late bool _percent = widget.discount == null || widget.discount!.isPercent;
+  late final _value = TextEditingController(
+    text: switch (widget.discount) {
+      null => '',
+      final d when d.isPercent => percentInput(d.percent),
+      final d => moneyInput(d.amountCents),
+    },
+  );
+  late final _label = TextEditingController(
+    text: widget.discount?.label ?? OfferDiscount.defaultLabel,
+  );
+
+  @override
+  void dispose() {
+    _value.dispose();
+    _label.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (!_form.currentState!.validate()) return;
+    final label = _label.text.trim().isEmpty
+        ? OfferDiscount.defaultLabel
+        : _label.text.trim();
+    Navigator.of(context).pop(
+      _percent
+          ? OfferDiscount(percent: parsePercent(_value.text)!, label: label)
+          : OfferDiscount(amountCents: parseMoney(_value.text)!, label: label),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Rabatt auf das Angebot'),
+    content: Form(
+      key: _form,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SegmentedButton<bool>(
+              showSelectedIcon: false,
+              segments: [
+                const ButtonSegment(value: true, label: Text('Prozent')),
+                ButtonSegment(value: false, label: Text(widget.currency)),
+              ],
+              selected: {_percent},
+              onSelectionChanged: (s) => setState(() {
+                _percent = s.first;
+                _value.clear();
+              }),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _value,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: InputDecoration(
+                labelText: _percent
+                    ? 'Rabatt (%)'
+                    : 'Rabatt (${widget.currency})',
+                hintText: _percent ? 'z.B. 10' : 'z.B. 50',
+              ),
+              validator: (v) {
+                if (_percent) {
+                  final p = parsePercent(v ?? '');
+                  return p == null || p <= 0 ? 'Prozent von 0 bis 100' : null;
+                }
+                final cents = parseMoney(v ?? '');
+                return cents == null || cents <= 0
+                    ? 'Betrag grösser 0, z.B. 50'
+                    : null;
+              },
+            ),
+            TextFormField(
+              controller: _label,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Bezeichnung',
+                hintText: 'z.B. Rabatt beim Kauf eines Fatbikes',
+              ),
+              onFieldSubmitted: (_) => _submit(),
+            ),
+          ],
+        ),
+      ),
+    ),
+    actions: [
+      if (widget.discount != null)
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(const OfferDiscount()),
+          child: const Text('Entfernen'),
+        ),
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Abbrechen'),
+      ),
+      FilledButton(onPressed: _submit, child: const Text('Übernehmen')),
+    ],
+  );
 }
 
 /// Lets the user tick repairs from the price list. Returns the chosen ones.

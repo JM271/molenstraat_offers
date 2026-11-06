@@ -86,6 +86,32 @@ test('adds VAT on top when prices exclude it, none when the rate is 0', () => {
   assert.ok(exempt.positions.every((p) => p.tax_id === undefined));
 });
 
+test('passes line discounts and the offer discount to bexio', () => {
+  const discounted = {
+    ...offer,
+    lines: [
+      { kind: 'part', description: 'Phone bag', quantity: 1, unitPriceCents: 3900, discountPercent: 100 },
+      { kind: 'part', description: 'Kickstand', quantity: 1, unitPriceCents: 2500, discountPercent: 10 },
+    ],
+    discount: { label: 'Rabatt Fatbike-Kauf', percent: 5 },
+  };
+  const ctx = { contactId: 1, userId: 1, taxId: 28, articles: new Map() };
+  const positions = buildQuote(discounted, settings, ctx).positions;
+  assert.equal(positions[1].discount_in_percent, '100.000000');
+  assert.equal(positions[2].discount_in_percent, '10.000000');
+  assert.deepEqual(positions[3], {
+    type: 'KbPositionDiscount', text: 'Rabatt Fatbike-Kauf', is_percentual: true, value: '5.000000',
+  });
+  const fixed = buildQuote({ ...discounted, discount: { label: 'Rabatt', amountCents: 5000 } }, settings, ctx);
+  assert.deepEqual(fixed.positions[3], {
+    type: 'KbPositionDiscount', text: 'Rabatt', is_percentual: false, value: '50.000000',
+  });
+  // Without discounts, bexio gets none.
+  assert.ok(buildQuote(offer, settings, ctx).positions.every(
+    (p) => p.discount_in_percent === undefined && p.type !== 'KbPositionDiscount',
+  ));
+});
+
 test('picks the normal 8.1 % sales tax', () => {
   const taxes = [
     { id: 1, code: 'UN77', value: 7.7, type: 'sales_tax', is_active: true },

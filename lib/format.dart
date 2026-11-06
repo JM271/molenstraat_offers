@@ -75,3 +75,13 @@ String formatDate(DateTime date) {
 
 String formatVatRate(double rate) =>
     rate == rate.roundToDouble() ? rate.toInt().toString() : rate.toString();
+
+/// A line discount: `Gratis` for 100 %, otherwise `Rabatt 10 %`.
+String formatLineDiscount(OfferLine line) =>
+    line.isFree ? 'Gratis' : 'Rabatt ${formatQuantity(line.discountPercent)} %';
+
+/// Label of the discount on the whole offer, with the percentage if it has
+/// one: `Rabatt 10 %`, `Rabatt beim Kauf eines Fatbikes`.
+String formatOfferDiscount(OfferDiscount discount) => discount.isPercent
+    ? '${discount.label} ${formatQuantity(discount.percent)} %'
+    : discount.label;

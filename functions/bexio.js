@@ -127,6 +127,8 @@ export function buildPositions(offer, { taxId, articles, units = {}, footer = ''
     let text = String(line.description ?? '').trim() || (kind === 'part' ? 'Teil' : 'Arbeit');
     if (kind === 'labour' && whole) text += ` (${minutes(line.quantity)} Min.)`;
     const position = { amount, unit_price: unitPrice, text };
+    const lineDiscount = Math.min(Math.max(Number(line.discountPercent ?? 0), 0), 100);
+    if (lineDiscount > 0) position.discount_in_percent = decimal(lineDiscount);
     if (taxId != null) position.tax_id = taxId;
     const unit = kind === 'labour' && !whole ? units.hour : units.piece;
     if (unit != null) position.unit_id = unit;
@@ -140,11 +142,33 @@ export function buildPositions(offer, { taxId, articles, units = {}, footer = ''
     }
   }
 
+  const discount = offerDiscount(offer);
+  if (discount) positions.push(discount);
+
   const notes = String(offer.notes ?? '').trim();
   if (notes) positions.push({ type: 'KbPositionText', text: `Bemerkungen: ${notes}`, show_pos_nr: false });
   const note = String(footer ?? '').trim();
   if (note) positions.push({ type: 'KbPositionText', text: note, show_pos_nr: false });
   return positions;
+}
+
+/**
+ * The discount on the whole offer as a bexio discount position, null if
+ * there is none. bexio applies it to the sum of the positions above it.
+ */
+export function offerDiscount(offer) {
+  const d = offer.discount;
+  if (!d) return null;
+  const percent = Number(d.percent ?? 0);
+  const cents = Number(d.amountCents ?? 0);
+  const text = String(d.label ?? '').trim() || 'Rabatt';
+  if (percent > 0) {
+    return { type: 'KbPositionDiscount', text, is_percentual: true, value: decimal(Math.min(percent, 100)) };
+  }
+  if (cents > 0) {
+    return { type: 'KbPositionDiscount', text, is_percentual: false, value: francs(cents) };
+  }
+  return null;
 }
 
 /** The request body for POST /2.0/kb_offer. */

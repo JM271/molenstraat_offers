@@ -180,6 +180,16 @@ class _OfferPageState extends State<OfferPage> {
     if (line != null) _change(() => _offer.lines.add(line));
   }
 
+  Future<void> _editDiscount() async {
+    final discount = await showDiscountDialog(
+      context,
+      discount: _offer.discount,
+      currency: _settings.currency,
+    );
+    if (discount == null) return;
+    _change(() => _offer.discount = discount.isEmpty ? null : discount);
+  }
+
   Future<void> _pickValidUntil() async {
     final picked = await showDatePicker(
       context: context,
@@ -317,11 +327,7 @@ class _OfferPageState extends State<OfferPage> {
 
   @override
   Widget build(BuildContext context) {
-    final totals = computeTotals(
-      _offer.lines,
-      vatRate: _settings.vatRate,
-      pricesIncludeVat: _settings.pricesIncludeVat,
-    );
+    final totals = _offer.totals(_settings);
     final missingPrices = _offer.lines.where((l) => l.missingPrice).length;
     String money(int cents) => formatMoney(cents, _settings.currency);
     final theme = Theme.of(context);
@@ -582,6 +588,23 @@ class _OfferPageState extends State<OfferPage> {
                   ),
                 _SumRow('Material', money(totals.partsCents)),
                 _SumRow('Arbeit', money(totals.labourCents)),
+                if (_offer.discount case final discount?)
+                  InkWell(
+                    onTap: _editDiscount,
+                    child: _SumRow(
+                      formatOfferDiscount(discount),
+                      money(-totals.discountCents),
+                    ),
+                  )
+                else
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton.icon(
+                      onPressed: _editDiscount,
+                      icon: const Icon(Icons.percent, size: 18),
+                      label: const Text('Rabatt auf das Angebot'),
+                    ),
+                  ),
                 if (totals.vatRate > 0 && !totals.pricesIncludeVat)
                   _SumRow(
                     'MwSt ${formatVatRate(totals.vatRate)}%',
@@ -684,13 +707,18 @@ class _LineTile extends StatelessWidget {
           line.missingPrice
               ? '${formatLineQuantity(line)} · Preis fehlt'
               : '${formatLineQuantity(line)} × ${formatMoney(line.unitPriceCents, currency)}',
+          if (line.hasDiscount && !line.missingPrice) formatLineDiscount(line),
         ].join(' · '),
         style: line.missingPrice || shortage ? TextStyle(color: error) : null,
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(formatMoney(line.totalCents, currency)),
+          Text(
+            line.isFree && !line.missingPrice
+                ? 'Gratis'
+                : formatMoney(line.totalCents, currency),
+          ),
           IconButton(
             tooltip: 'Position entfernen',
             icon: const Icon(Icons.close),
@@ -734,8 +762,8 @@ String bexioError(Object error) {
       'not-found' => 'Die bexio-Anbindung ist noch nicht eingerichtet.',
       'unavailable' || 'deadline-exceeded' =>
         'Keine Verbindung zu bexio. Bitte erneut versuchen.',
-      'unauthenticated' || 'permission-denied' =>
-        error.message ?? 'Keine Berechtigung.',
+      'unauthenticated' ||
+      'permission-denied' => error.message ?? 'Keine Berechtigung.',
       _ => error.message ?? 'Übertragung an bexio fehlgeschlagen.',
     };
   }
@@ -789,10 +817,7 @@ class _BexioStatus extends StatelessWidget {
       leading: Icon(Icons.cloud_off_outlined, color: theme.colorScheme.error),
       title: const Text('bexio-Übertragung fehlgeschlagen'),
       subtitle: Text(link.error),
-      trailing: TextButton(
-        onPressed: onTransfer,
-        child: const Text('Erneut'),
-      ),
+      trailing: TextButton(onPressed: onTransfer, child: const Text('Erneut')),
     );
   }
 }

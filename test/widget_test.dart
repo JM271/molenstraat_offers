@@ -396,7 +396,10 @@ void main() {
       200,
       scrollable: page,
     );
-    await tester.drag(page, const Offset(0, -250));
+    await Scrollable.ensureVisible(
+      tester.element(find.text('Aus Preisliste')),
+      alignment: 0.5,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Aus Preisliste'));
     await tester.pumpAndSettle();
@@ -1086,6 +1089,223 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('In bexio anlegen?'), findsNothing);
+    });
+  });
+
+  group('discounts', () {
+    final bag = OfferLine(
+      kind: LineKind.part,
+      description: 'Phone bag',
+      quantity: 1,
+      unitPriceCents: 3900,
+      discountPercent: 100,
+    );
+    final stand = OfferLine(
+      kind: LineKind.part,
+      description: 'Kickstand',
+      quantity: 2,
+      unitPriceCents: 2490,
+      discountPercent: 10,
+    );
+    final work = OfferLine(
+      kind: LineKind.labour,
+      description: 'Montage',
+      quantity: 0.5,
+      unitPriceCents: 9000,
+    );
+
+    test('line discounts and a free line', () {
+      expect(bag.grossCents, 3900);
+      expect(bag.totalCents, 0);
+      expect(bag.isFree, isTrue);
+      expect(stand.grossCents, 4980);
+      expect(stand.discountCents, 498);
+      expect(stand.totalCents, 4482);
+      final t = computeTotals(
+        [bag, stand, work],
+        vatRate: 8.1,
+        pricesIncludeVat: true,
+      );
+      expect(t.partsCents, 4482);
+      expect(t.labourCents, 4500);
+      expect(t.totalCents, 8982);
+    });
+
+    test('a discount on the whole offer, in percent or as an amount', () {
+      final lines = [stand, work]; // 4482 + 4500 = 8982
+      final percent = computeTotals(
+        lines,
+        vatRate: 8.1,
+        pricesIncludeVat: true,
+        discount: const OfferDiscount(percent: 10),
+      );
+      expect(percent.itemsCents, 8982);
+      expect(percent.discountCents, 898);
+      expect(percent.totalCents, 8084);
+      expect(percent.vatCents, 606); // 8084 * 8.1 / 108.1
+      final amount = computeTotals(
+        lines,
+        vatRate: 8.1,
+        pricesIncludeVat: false,
+        discount: const OfferDiscount(amountCents: 1000),
+      );
+      expect(amount.linesCents, 7982);
+      expect(amount.vatCents, 647); // VAT on the discounted sum
+      expect(amount.totalCents, 8629);
+      // Never more than the lines are worth.
+      expect(
+        computeTotals(
+          [work],
+          vatRate: 0,
+          pricesIncludeVat: true,
+          discount: const OfferDiscount(amountCents: 99999),
+        ).totalCents,
+        0,
+      );
+    });
+
+    test('are stored with the offer, and only when given', () {
+      final offer = Offer(
+        id: 'o1',
+        number: 'A-2026-001',
+        createdAt: DateTime(2026, 11, 6),
+        validUntil: DateTime(2026, 12, 6),
+        lines: [bag, work],
+        discount: const OfferDiscount(percent: 5, label: 'Fatbike-Kauf'),
+      );
+      final json = offer.toJson();
+      expect(json['discount'], {'label': 'Fatbike-Kauf', 'percent': 5.0});
+      expect((json['lines'] as List).first['discountPercent'], 100.0);
+      expect(
+        (json['lines'] as List).last.containsKey('discountPercent'),
+        isFalse,
+      );
+      final copy = offer.copy();
+      expect(copy.discount?.percent, 5);
+      expect(copy.lines.first.isFree, isTrue);
+      expect(
+        (Offer.fromJson(
+          json,
+        )..discount = null).toJson().containsKey('discount'),
+        isFalse,
+      );
+    });
+
+    test('show in the text export', () {
+      final offer = Offer(
+        id: 'o1',
+        number: 'A-2026-001',
+        createdAt: DateTime(2026, 11, 6),
+        validUntil: DateTime(2026, 12, 6),
+        lines: [bag, stand, work],
+        discount: const OfferDiscount(amountCents: 1000),
+      );
+      final text = offerText(offer, const ShopSettings());
+      expect(text, contains('- Phone bag: 1 Stk. × CHF 39.00, gratis'));
+      expect(
+        text,
+        contains(
+          '- Kickstand: 2 Stk. × CHF 24.90 = CHF 49.80, Rabatt 10 % = CHF 44.82',
+        ),
+      );
+      expect(text, contains('Summe Positionen: CHF 89.82'));
+      expect(text, contains('Rabatt: CHF -10.00'));
+      expect(text, contains('Total: CHF 79.82'));
+    });
+
+    test('the PDF builds with discounts', () async {
+      final offer = Offer(
+        id: 'o1',
+        number: 'A-2026-001',
+        createdAt: DateTime(2026, 11, 6),
+        validUntil: DateTime(2026, 12, 6),
+        lines: [bag, stand],
+        discount: const OfferDiscount(percent: 5),
+      );
+      final bytes = await buildOfferPdf(offer, const ShopSettings());
+      expect(bytes.length, greaterThan(1000));
+    });
+
+    testWidgets('give a part away and a discount on the offer', (tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      final store = await openStore(FakeFirebaseFirestore());
+      await tester.pumpWidget(OffersApp(store: store));
+      await tester.tap(find.text('Neues Angebot'));
+      await tester.pumpAndSettle();
+      final page = find
+          .descendant(
+            of: find.byType(OfferPage),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.widgetWithText(OutlinedButton, 'Teil'),
+        200,
+        scrollable: page,
+      );
+      await tester.drag(page, const Offset(0, -250));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Teil'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Beschreibung'),
+        'Handytasche',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Stückpreis (CHF)'),
+        '39',
+      );
+      await tester.tap(find.widgetWithText(FilterChip, 'Gratis'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(TextFormField, '100'), findsOneWidget);
+      await tester.tap(find.text('Übernehmen'));
+      await tester.pumpAndSettle();
+      expect(find.text('1 Stk. × CHF 39.00 · Gratis'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(OutlinedButton, 'Pauschale'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Beschreibung'),
+        'Service',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Pauschalpreis (CHF)'),
+        '150',
+      );
+      await tester.tap(find.text('Übernehmen'));
+      await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Rabatt auf das Angebot'),
+        200,
+        scrollable: page,
+      );
+      await tester.tap(find.text('Rabatt auf das Angebot'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('CHF'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Rabatt (CHF)'),
+        '20',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Bezeichnung'),
+        'Fatbike-Kauf',
+      );
+      await tester.tap(find.text('Übernehmen'));
+      await tester.pumpAndSettle();
+      expect(find.text('Fatbike-Kauf'), findsOneWidget);
+      expect(find.text('CHF -20.00'), findsOneWidget);
+      expect(find.text('CHF 130.00'), findsOneWidget); // total
+
+      await tester.tap(find.text('Speichern'));
+      await tester.pumpAndSettle();
+      final saved = store.offers.single;
+      expect(saved.discount?.amountCents, 2000);
+      expect(saved.lines.first.isFree, isTrue);
+      expect(saved.totals(store.settings).totalCents, 13000);
     });
   });
 }

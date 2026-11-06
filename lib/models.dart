@@ -40,6 +40,7 @@ class OfferLine {
     required this.quantity,
     required this.unitPriceCents,
     this.sku = '',
+    this.discountPercent = 0,
   });
 
   final LineKind kind;
@@ -52,7 +53,21 @@ class OfferLine {
   final double quantity;
   final int unitPriceCents;
 
-  int get totalCents => (quantity * unitPriceCents).round();
+  /// Discount on this line in percent; 100 gives it away for free, e.g. an
+  /// accessory with a new bike.
+  final double discountPercent;
+
+  /// Quantity × unit price, before the discount.
+  int get grossCents => (quantity * unitPriceCents).round();
+  int get discountCents => discountPercent <= 0
+      ? 0
+      : discountPercent >= 100
+      ? grossCents
+      : (grossCents * discountPercent / 100).round();
+  int get totalCents => grossCents - discountCents;
+
+  bool get hasDiscount => discountPercent > 0;
+  bool get isFree => discountPercent >= 100;
 
   bool get missingPrice => unitPriceCents <= 0;
 
@@ -62,12 +77,14 @@ class OfferLine {
     double? quantity,
     int? unitPriceCents,
     String? sku,
+    double? discountPercent,
   }) => OfferLine(
     kind: kind ?? this.kind,
     description: description ?? this.description,
     quantity: quantity ?? this.quantity,
     unitPriceCents: unitPriceCents ?? this.unitPriceCents,
     sku: sku ?? this.sku,
+    discountPercent: discountPercent ?? this.discountPercent,
   );
 
   Map<String, dynamic> toJson() => {
@@ -76,6 +93,7 @@ class OfferLine {
     'quantity': quantity,
     'unitPriceCents': unitPriceCents,
     if (sku.isNotEmpty) 'sku': sku,
+    if (discountPercent > 0) 'discountPercent': discountPercent,
   };
 
   factory OfferLine.fromJson(Map<String, dynamic> json) => OfferLine(
@@ -84,6 +102,54 @@ class OfferLine {
     quantity: (json['quantity'] as num?)?.toDouble() ?? 1,
     unitPriceCents: (json['unitPriceCents'] as num?)?.toInt() ?? 0,
     sku: json['sku'] as String? ?? '',
+    discountPercent: ((json['discountPercent'] as num?)?.toDouble() ?? 0)
+        .clamp(0, 100)
+        .toDouble(),
+  );
+}
+
+/// Discount on the whole offer: a percentage of the lines or a fixed amount.
+class OfferDiscount {
+  const OfferDiscount({
+    this.percent = 0,
+    this.amountCents = 0,
+    this.label = defaultLabel,
+  });
+
+  static const defaultLabel = 'Rabatt';
+
+  /// Percent of the sum of all lines; when 0, [amountCents] applies.
+  final double percent;
+  final int amountCents;
+
+  /// Shown on the offer, e.g. "Rabatt" or "Rabatt beim Kauf eines Fatbikes".
+  final String label;
+
+  bool get isPercent => percent > 0;
+  bool get isEmpty => percent <= 0 && amountCents <= 0;
+
+  /// The discount on lines worth [linesCents]; never more than they cost.
+  int centsOf(int linesCents) {
+    if (linesCents <= 0) return 0;
+    if (isPercent) {
+      return percent >= 100 ? linesCents : (linesCents * percent / 100).round();
+    }
+    return amountCents.clamp(0, linesCents);
+  }
+
+  Map<String, dynamic> toJson() => {
+    'label': label,
+    if (isPercent) 'percent': percent else 'amountCents': amountCents,
+  };
+
+  factory OfferDiscount.fromJson(Map<String, dynamic> json) => OfferDiscount(
+    percent: ((json['percent'] as num?)?.toDouble() ?? 0)
+        .clamp(0, 100)
+        .toDouble(),
+    amountCents: (json['amountCents'] as num?)?.toInt() ?? 0,
+    label: (json['label'] as String?)?.trim().isNotEmpty ?? false
+        ? (json['label'] as String).trim()
+        : defaultLabel,
   );
 }
 
@@ -162,14 +228,19 @@ class OfferTotals {
   const OfferTotals({
     required this.partsCents,
     required this.labourCents,
+    this.discountCents = 0,
     required this.totalCents,
     required this.vatCents,
     required this.vatRate,
     required this.pricesIncludeVat,
   });
 
+  /// Parts and work after the discounts on single lines.
   final int partsCents;
   final int labourCents;
+
+  /// Discount on the whole offer.
+  final int discountCents;
 
   /// Amount the customer pays.
   final int totalCents;
@@ -179,15 +250,19 @@ class OfferTotals {
   final double vatRate;
   final bool pricesIncludeVat;
 
-  /// Sum of the lines before VAT is added (equals [totalCents] when prices
-  /// already include VAT).
-  int get linesCents => partsCents + labourCents;
+  /// Sum of the lines, before the discount on the whole offer.
+  int get itemsCents => partsCents + labourCents;
+
+  /// Sum of the lines after the discount and before VAT is added (equals
+  /// [totalCents] when prices already include VAT).
+  int get linesCents => itemsCents - discountCents;
 }
 
 OfferTotals computeTotals(
   List<OfferLine> lines, {
   required double vatRate,
   required bool pricesIncludeVat,
+  OfferDiscount? discount,
 }) {
   var parts = 0;
   var labour = 0;
@@ -199,11 +274,13 @@ OfferTotals computeTotals(
       labour += line.totalCents;
     }
   }
-  final sum = parts + labour;
+  final discountCents = discount?.centsOf(parts + labour) ?? 0;
+  final sum = parts + labour - discountCents;
   if (vatRate <= 0) {
     return OfferTotals(
       partsCents: parts,
       labourCents: labour,
+      discountCents: discountCents,
       totalCents: sum,
       vatCents: 0,
       vatRate: 0,
@@ -222,6 +299,7 @@ OfferTotals computeTotals(
   return OfferTotals(
     partsCents: parts,
     labourCents: labour,
+    discountCents: discountCents,
     totalCents: total,
     vatCents: vat,
     vatRate: vatRate,
@@ -244,6 +322,7 @@ class Offer {
     this.problem = '',
     this.notes = '',
     List<OfferLine>? lines,
+    this.discount,
   }) : lines = lines ?? [];
 
   final String id;
@@ -262,6 +341,16 @@ class Offer {
   String notes;
   List<OfferLine> lines;
 
+  /// Discount on the whole offer, null if there is none.
+  OfferDiscount? discount;
+
+  OfferTotals totals(ShopSettings settings) => computeTotals(
+    lines,
+    vatRate: settings.vatRate,
+    pricesIncludeVat: settings.pricesIncludeVat,
+    discount: discount,
+  );
+
   Offer copy() => Offer.fromJson(toJson());
 
   Map<String, dynamic> toJson() => {
@@ -278,6 +367,7 @@ class Offer {
     'problem': problem,
     'notes': notes,
     'lines': lines.map((l) => l.toJson()).toList(),
+    if (discount case final d? when !d.isEmpty) 'discount': d.toJson(),
   };
 
   factory Offer.fromJson(Map<String, dynamic> json) => Offer(
@@ -297,6 +387,12 @@ class Offer {
       for (final row in (json['lines'] as List? ?? const []))
         OfferLine.fromJson(Map<String, dynamic>.from(row as Map)),
     ],
+    discount: switch (json['discount']) {
+      final Map<dynamic, dynamic> d
+          when !OfferDiscount.fromJson(Map<String, dynamic>.from(d)).isEmpty =>
+        OfferDiscount.fromJson(Map<String, dynamic>.from(d)),
+      _ => null,
+    },
   );
 }
 

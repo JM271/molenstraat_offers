@@ -15,11 +15,7 @@ String offerFileName(Offer offer) =>
 
 /// Plain-text version of the offer, for pasting into messages or e-mails.
 String offerText(Offer offer, ShopSettings settings) {
-  final totals = computeTotals(
-    offer.lines,
-    vatRate: settings.vatRate,
-    pricesIncludeVat: settings.pricesIncludeVat,
-  );
+  final totals = offer.totals(settings);
   String money(int cents) => formatMoney(cents, settings.currency);
   final b = StringBuffer()
     ..writeln('${settings.companyName} – Reparaturangebot ${offer.number}')
@@ -38,14 +34,26 @@ String offerText(Offer offer, ShopSettings settings) {
   }
   b.writeln();
   for (final line in offer.lines) {
+    final price = '${formatLineQuantity(line)} × ${money(line.unitPriceCents)}';
     b.writeln(
       '- ${line.description}'
       '${line.sku.isEmpty ? '' : ' (Art.-Nr. ${line.sku})'}: '
-      '${formatLineQuantity(line)} × '
-      '${money(line.unitPriceCents)} = ${money(line.totalCents)}',
+      '${line.isFree
+          ? '$price, gratis'
+          : line.hasDiscount
+          ? '$price = ${money(line.grossCents)}, '
+                '${formatLineDiscount(line)} = ${money(line.totalCents)}'
+          : '$price = ${money(line.totalCents)}'}',
     );
   }
   b.writeln();
+  if (offer.discount case final discount? when totals.discountCents > 0) {
+    b
+      ..writeln('Summe Positionen: ${money(totals.itemsCents)}')
+      ..writeln(
+        '${formatOfferDiscount(discount)}: ${money(-totals.discountCents)}',
+      );
+  }
   if (totals.vatRate > 0 && !totals.pricesIncludeVat) {
     b
       ..writeln('Zwischensumme: ${money(totals.linesCents)}')
@@ -73,11 +81,7 @@ String offerText(Offer offer, ShopSettings settings) {
 }
 
 Future<Uint8List> buildOfferPdf(Offer offer, ShopSettings settings) async {
-  final totals = computeTotals(
-    offer.lines,
-    vatRate: settings.vatRate,
-    pricesIncludeVat: settings.pricesIncludeVat,
-  );
+  final totals = offer.totals(settings);
   String money(int cents) => formatMoney(cents, settings.currency);
   final logo = pw.MemoryImage(
     (await rootBundle.load(logoAsset)).buffer.asUint8List(),
@@ -252,10 +256,14 @@ Future<Uint8List> buildOfferPdf(Offer offer, ShopSettings settings) async {
               [
                 '${i + 1}',
                 '${offer.lines[i].kind.label}: ${offer.lines[i].description}'
-                    '${offer.lines[i].sku.isEmpty ? '' : '\nArt.-Nr. ${offer.lines[i].sku}'}',
+                    '${offer.lines[i].sku.isEmpty ? '' : '\nArt.-Nr. ${offer.lines[i].sku}'}'
+                    '${offer.lines[i].hasDiscount && !offer.lines[i].isFree ? '\n${formatLineDiscount(offer.lines[i])} '
+                              '(${money(-offer.lines[i].discountCents)})' : ''}',
                 formatLineQuantity(offer.lines[i]),
                 money(offer.lines[i].unitPriceCents),
-                money(offer.lines[i].totalCents),
+                offer.lines[i].isFree
+                    ? 'Gratis'
+                    : money(offer.lines[i].totalCents),
               ],
           ],
           headerStyle: headerStyle,
@@ -290,7 +298,10 @@ Future<Uint8List> buildOfferPdf(Offer offer, ShopSettings settings) async {
         if (totals.partsCents > 0 && totals.labourCents > 0) ...[
           sumRow('Material', money(totals.partsCents)),
           sumRow('Arbeit', money(totals.labourCents)),
-        ],
+        ] else if (totals.discountCents > 0)
+          sumRow('Summe Positionen', money(totals.itemsCents)),
+        if (offer.discount case final discount? when totals.discountCents > 0)
+          sumRow(formatOfferDiscount(discount), money(-totals.discountCents)),
         if (totals.vatRate > 0 && !totals.pricesIncludeVat) ...[
           sumRow('Zwischensumme', money(totals.linesCents)),
           sumRow(

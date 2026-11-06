@@ -238,11 +238,7 @@ class _OfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final totals = computeTotals(
-      offer.lines,
-      vatRate: settings.vatRate,
-      pricesIncludeVat: settings.pricesIncludeVat,
-    );
+    final totals = offer.totals(settings);
     final (Color bg, Color fg) = switch (offer.status) {
       OfferStatus.draft => (
         scheme.surfaceContainerHighest,
