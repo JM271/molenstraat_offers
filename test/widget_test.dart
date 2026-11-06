@@ -485,7 +485,7 @@ void main() {
       final data = await rootBundle.load(catalogAsset);
       final products = parseCatalog(utf8.decode(data.buffer.asUint8List()));
       // Only the Molenstraat product list, all with a price.
-      expect(products, hasLength(54));
+      expect(products, hasLength(56));
       expect(products.where((p) => !p.sku.startsWith('MS-')), isEmpty);
       expect(products.where((p) => !p.hasListPrice), isEmpty);
       expect(products.map((p) => p.sku).toSet(), hasLength(products.length));
@@ -599,7 +599,7 @@ void main() {
       final store = await openStore(db);
       final bundled = store.catalog;
       // Until the database has the catalogue, the bundled list stands in.
-      expect(bundled, hasLength(54));
+      expect(bundled, hasLength(56));
       expect(
         store.priceFor(bundled.firstWhere((p) => p.sku == 'MS-SP-2005')),
         990,
@@ -608,7 +608,7 @@ void main() {
       expect(await store.seedCatalog(bundled), isTrue);
       final other = await openStore(db, uid: 'u2');
       other.useBundledCatalog(const []);
-      expect(other.catalog, hasLength(54));
+      expect(other.catalog, hasLength(56));
       expect(other.catalog.first.category, 'Fatbikes');
       final disc = other.catalog.firstWhere((p) => p.sku == 'MS-SP-2005');
       expect((disc.priceCents, disc.supplierSku), (990, 'OXV8-17A'));
@@ -702,7 +702,7 @@ void main() {
         await settle();
         final other = await openStore(db, uid: 'u2');
         other.useBundledCatalog(const []);
-        expect(other.catalog, hasLength(54));
+        expect(other.catalog, hasLength(56));
         expect(
           other.catalog.firstWhere((p) => p.sku == 'MS-SP-2005').priceCents,
           1200,
@@ -963,7 +963,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        '54 von 54 Katalogprodukten haben einen Preis. Importierte Preise '
+        '56 von 56 Katalogprodukten haben einen Preis. Importierte Preise '
         'gelten sofort auf allen Geräten.',
       ),
       findsOneWidget,

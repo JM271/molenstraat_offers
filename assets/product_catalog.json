@@ -132,10 +132,10 @@
   {
     "sku": "MS-SP-2004",
     "supplierSku": "OXV8-13",
-    "name": "Full Brake caliper set (hydraulic) 9cm (L/R)",
+    "name": "Full Brake 2x caliper set front and rear (hydraulic) 9cm (LFRR)",
     "category": "Spare Parts",
     "imageAsset": "assets/products/oxv8-13.png",
-    "priceCents": 13900
+    "priceCents": 21900
   },
   {
     "sku": "MS-SP-2005",
@@ -159,6 +159,22 @@
     "category": "Spare Parts",
     "imageAsset": "assets/products/m-30e.png",
     "priceCents": 750
+  },
+  {
+    "sku": "MS-SP-2008",
+    "supplierSku": "OXV8-13",
+    "name": "Single Brake caliper set (hydraulic) 9cm (R rear brake line)",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-13.png",
+    "priceCents": 13900
+  },
+  {
+    "sku": "MS-SP-2009",
+    "supplierSku": "OXV8-13",
+    "name": "Single Brake caliper set (hydraulic) 9cm (L front brake line)",
+    "category": "Spare Parts",
+    "imageAsset": "assets/products/oxv8-13.png",
+    "priceCents": 13900
   },
   {
     "sku": "MS-SP-3004",
