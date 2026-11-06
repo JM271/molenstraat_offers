@@ -77,6 +77,7 @@ class _HomePageState extends State<HomePage> {
       o.bikeModel,
       o.frameNumber,
       o.problem,
+      store.bexioLink(o.id)?.number ?? '',
     ].any((field) => field.toLowerCase().contains(q));
   }
 
@@ -199,6 +200,10 @@ class _HomePageState extends State<HomePage> {
                   itemBuilder: (context, i) => _OfferCard(
                     offer: offers[i],
                     settings: store.settings,
+                    bexioNumber: switch (store.bexioLink(offers[i].id)) {
+                      final link? when link.isDone => link.number,
+                      _ => '',
+                    },
                     onTap: () => _open(offers[i].copy()),
                   ),
                 ),
@@ -220,11 +225,15 @@ class _OfferCard extends StatelessWidget {
     required this.offer,
     required this.settings,
     required this.onTap,
+    this.bexioNumber = '',
   });
 
   final Offer offer;
   final ShopSettings settings;
   final VoidCallback onTap;
+
+  /// Number of the offer's quote in bexio, empty if not transferred.
+  final String bexioNumber;
 
   @override
   Widget build(BuildContext context) {
@@ -303,6 +312,7 @@ class _OfferCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       '${offer.number} · ${formatDate(offer.createdAt)}'
+                      '${bexioNumber.isEmpty ? '' : ' · bexio $bexioNumber'}'
                       '${expired ? ' · abgelaufen' : ''}',
                       style: Theme.of(context).textTheme.bodySmall
                           ?.copyWith(color: expired ? scheme.error : null),

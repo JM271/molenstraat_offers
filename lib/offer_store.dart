@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 
+import 'bexio.dart';
 import 'models.dart';
 
 /// Stock of one SKU in the shared inventory of the Inventory app (Spoke).
@@ -27,12 +29,20 @@ String offerNumber(int year, int sequence) =>
 /// `workshops/molenstraat`. That app's stock (`parts`) and custom catalogue
 /// products (`catalog`) are only read, never written.
 class OfferStore extends ChangeNotifier {
-  OfferStore(this.db, this.uid) {
+  OfferStore(this.db, this.uid, {FirebaseFunctions? functions}) {
+    _functions = functions;
     _listen();
+    _listenToBexio();
   }
 
   final FirebaseFirestore db;
   final String uid;
+
+  /// Region of the Cloud Functions in `functions/` (Zurich).
+  static const functionsRegion = 'europe-west6';
+  FirebaseFunctions? _functions;
+  FirebaseFunctions get functions =>
+      _functions ??= FirebaseFunctions.instanceFor(region: functionsRegion);
 
   static const workshopId = 'molenstraat';
 
@@ -69,6 +79,7 @@ class OfferStore extends ChangeNotifier {
   List<CatalogProduct> _bundledProducts = const [];
   final List<CatalogProduct> _customProducts = [];
   final Map<String, int> _lastNumbers = {};
+  final Map<String, BexioLink> _bexioLinks = {};
 
   final _subscriptions = <StreamSubscription<Object?>>[];
   final _waitingFor = <String>{};
@@ -232,6 +243,43 @@ class OfferStore extends ChangeNotifier {
               p,
         ]);
     });
+  }
+
+  /// Links to bexio quotes. Kept apart from [_listen]: until the database
+  /// rules allow reading them, the app works as before, just without bexio
+  /// numbers.
+  void _listenToBexio() {
+    _subscriptions.add(
+      workshop
+          .collection('bexioOffers')
+          .snapshots()
+          .listen(
+            (s) {
+              _bexioLinks
+                ..clear()
+                ..addAll({
+                  for (final doc in s.docs)
+                    doc.id: ?_tryParse(() => BexioLink.fromJson(doc.data())),
+                });
+              notifyListeners();
+            },
+            onError: (Object error) =>
+                debugPrint('bexio links not readable: $error'),
+          ),
+    );
+  }
+
+  /// The bexio quote of an offer, null if it was never transferred.
+  BexioLink? bexioLink(String offerId) => _bexioLinks[offerId];
+
+  /// Creates the offer as a quote in bexio (Cloud Function
+  /// `createBexioOffer`), from the offer as saved in the database. Calling
+  /// it again returns the existing quote.
+  Future<BexioTransfer> transferToBexio(String offerId) async {
+    final result = await functions
+        .httpsCallable('createBexioOffer')
+        .call<Map<String, dynamic>>({'offerId': offerId});
+    return BexioTransfer.fromJson(Map<String, dynamic>.from(result.data));
   }
 
   /// Fatbikes, spare parts and accessories first, then by SKU.

@@ -1,7 +1,9 @@
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
 
+import 'bexio.dart';
 import 'catalog.dart';
 import 'dialogs.dart';
 import 'firebase_gate.dart';
@@ -23,7 +25,7 @@ class OfferPage extends StatefulWidget {
   State<OfferPage> createState() => _OfferPageState();
 }
 
-enum _Action { preview, share, print, copy, delete }
+enum _Action { preview, share, print, copy, bexio, delete }
 
 class _OfferPageState extends State<OfferPage> {
   late final Offer _offer = widget.offer;
@@ -37,6 +39,7 @@ class _OfferPageState extends State<OfferPage> {
   late final _notes = _controller(_offer.notes);
   bool _dirty = false;
   bool _saving = false;
+  bool _transferring = false;
 
   ShopSettings get _settings => widget.store.settings;
 
@@ -222,6 +225,8 @@ class _OfferPageState extends State<OfferPage> {
           ScaffoldMessenger.of(context)
               .showSnackBar(const SnackBar(content: Text('Text kopiert')));
         }
+      case _Action.bexio:
+        await _transferToBexio(offer);
       case _Action.delete:
         final ok = await confirm(
           context,
@@ -236,6 +241,61 @@ class _OfferPageState extends State<OfferPage> {
         } catch (e) {
           if (mounted) _snack(cloudError(e));
         }
+    }
+  }
+
+  BexioLink? get _bexio => widget.store.bexioLink(_offer.id);
+
+  /// Creates the saved offer as a quote in bexio, or copies the bexio number
+  /// if it is there already.
+  Future<void> _transferToBexio(Offer offer) async {
+    final link = _bexio;
+    if (link != null && link.isDone) {
+      await Clipboard.setData(ClipboardData(text: link.number));
+      if (mounted) _snack('bexio-Nr. ${link.number} kopiert');
+      return;
+    }
+    if (offer.customerName.isEmpty) {
+      _snack('Bitte zuerst den Namen des Kunden eingeben.');
+      return;
+    }
+    if (offer.lines.isEmpty || offer.lines.any((l) => l.missingPrice)) {
+      _snack('Alle Positionen brauchen einen Preis.');
+      return;
+    }
+    final ok = await confirm(
+      context,
+      title: 'In bexio anlegen?',
+      message:
+          'Angebot ${offer.number} wird in bexio als Offerte angelegt. '
+          'Der Kunde wird über E-Mail oder Telefon in bexio gesucht und '
+          'sonst neu erfasst. Spätere Änderungen hier werden nicht '
+          'übertragen.',
+      action: 'Anlegen',
+    );
+    if (!ok || !mounted) return;
+    setState(() => _transferring = true);
+    try {
+      final result = await widget.store.transferToBexio(offer.id);
+      if (!mounted) return;
+      final missing = result.missingArticles.length;
+      _snack(
+        [
+          result.existing
+              ? 'Bereits in bexio als ${result.number}'
+              : 'In bexio angelegt als ${result.number}',
+          if (missing == 1)
+            '1 Teil ist in bexio kein Artikel und wurde als freie '
+                'Position übertragen',
+          if (missing > 1)
+            '$missing Teile sind in bexio keine Artikel und wurden als '
+                'freie Positionen übertragen',
+        ].join('. '),
+      );
+    } catch (e) {
+      if (mounted) _snack(bexioError(e));
+    } finally {
+      if (mounted) setState(() => _transferring = false);
     }
   }
 
@@ -321,6 +381,18 @@ class _OfferPageState extends State<OfferPage> {
                     title: Text('Als Text kopieren'),
                   ),
                 ),
+                PopupMenuItem(
+                  value: _Action.bexio,
+                  enabled: !_transferring && !(_bexio?.isPending ?? false),
+                  child: ListTile(
+                    leading: const Icon(Icons.cloud_upload_outlined),
+                    title: Text(
+                      _bexio?.isDone ?? false
+                          ? 'bexio-Nr. kopieren'
+                          : 'In bexio anlegen',
+                    ),
+                  ),
+                ),
                 if (!_isNew)
                   const PopupMenuItem(
                     value: _Action.delete,
@@ -365,6 +437,14 @@ class _OfferPageState extends State<OfferPage> {
                       ),
                     ),
                   ],
+                ),
+                ListenableBuilder(
+                  listenable: widget.store,
+                  builder: (context, _) => _BexioStatus(
+                    link: _bexio,
+                    transferring: _transferring,
+                    onTransfer: () => _onAction(_Action.bexio),
+                  ),
                 ),
               ],
             ),
@@ -642,6 +722,76 @@ class _SumRow extends StatelessWidget {
           const SizedBox(width: 12),
           Text(value, style: style),
         ],
+      ),
+    );
+  }
+}
+
+/// Message for a failed call of the bexio Cloud Function.
+String bexioError(Object error) {
+  if (error is FirebaseFunctionsException) {
+    return switch (error.code) {
+      'not-found' => 'Die bexio-Anbindung ist noch nicht eingerichtet.',
+      'unavailable' || 'deadline-exceeded' =>
+        'Keine Verbindung zu bexio. Bitte erneut versuchen.',
+      'unauthenticated' || 'permission-denied' =>
+        error.message ?? 'Keine Berechtigung.',
+      _ => error.message ?? 'Übertragung an bexio fehlgeschlagen.',
+    };
+  }
+  return cloudError(error);
+}
+
+/// The offer's bexio number, a running transfer or the last error.
+class _BexioStatus extends StatelessWidget {
+  const _BexioStatus({
+    required this.link,
+    required this.transferring,
+    required this.onTransfer,
+  });
+
+  final BexioLink? link;
+  final bool transferring;
+  final VoidCallback onTransfer;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final link = this.link;
+    if (transferring || (link?.isPending ?? false)) {
+      return const ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: SizedBox.square(
+          dimension: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+        title: Text('Wird an bexio übertragen …'),
+      );
+    }
+    if (link == null) return const SizedBox.shrink();
+    if (link.isDone) {
+      return ListTile(
+        contentPadding: EdgeInsets.zero,
+        leading: const Icon(Icons.cloud_done_outlined),
+        title: Text('bexio ${link.number}'),
+        subtitle: const Text(
+          'Änderungen hier werden nicht nach bexio übertragen.',
+        ),
+        trailing: IconButton(
+          tooltip: 'bexio-Nr. kopieren',
+          icon: const Icon(Icons.copy, size: 20),
+          onPressed: onTransfer,
+        ),
+      );
+    }
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(Icons.cloud_off_outlined, color: theme.colorScheme.error),
+      title: const Text('bexio-Übertragung fehlgeschlagen'),
+      subtitle: Text(link.error),
+      trailing: TextButton(
+        onPressed: onTransfer,
+        child: const Text('Erneut'),
       ),
     );
   }

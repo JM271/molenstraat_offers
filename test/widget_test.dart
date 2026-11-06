@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 
+import 'package:molenstraat_offers/bexio.dart';
 import 'package:molenstraat_offers/catalog.dart';
 import 'package:molenstraat_offers/dialogs.dart';
 import 'package:molenstraat_offers/format.dart';
@@ -984,5 +986,106 @@ void main() {
         store.catalog.firstWhere((p) => p.sku == sku).priceCents;
     expect(priceOf('MS-SP-3009'), 4000);
     expect(priceOf('MS-SP-2002'), 2250); // by its supplier number OXV8-30
+  });
+
+  group('bexio', () {
+    test('reads the link written by the Cloud Function', () {
+      final now = DateTime.now();
+      final done = BexioLink.fromJson({
+        'state': 'done',
+        'bexioId': 900,
+        'number': 'AN-00042',
+        'missingArticles': ['MS-SP-2007'],
+      });
+      expect(done.isDone, isTrue);
+      expect(done.bexioId, 900);
+      expect(done.missingArticles, ['MS-SP-2007']);
+      final running = BexioLink.fromJson({
+        'state': 'pending',
+        'startedAt': Timestamp.fromDate(now),
+      });
+      expect(running.isPending, isTrue);
+      // An interrupted transfer may be retried after two minutes.
+      final stale = BexioLink.fromJson({
+        'state': 'pending',
+        'startedAt': Timestamp.fromDate(
+          now.subtract(const Duration(minutes: 3)),
+        ),
+      });
+      expect(stale.isPending, isFalse);
+      expect(
+        BexioLink.fromJson({'state': 'failed', 'error': 'Token abgelaufen'})
+            .error,
+        'Token abgelaufen',
+      );
+    });
+
+    testWidgets('shows the bexio number in the list and the offer', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      final db = FakeFirebaseFirestore();
+      final store = await openStore(db);
+      // Transactions need real async, outside the test's fake clock.
+      final offer = (await tester.runAsync(() async {
+        final offer = await store.saveOffer(
+          store.newOffer()..customerName = 'Anna Muster',
+        );
+        await store.saveOffer(store.newOffer()..customerName = 'Ben');
+        await db
+            .collection('workshops')
+            .doc('molenstraat')
+            .collection('bexioOffers')
+            .doc(offer.id)
+            .set({'state': 'done', 'bexioId': 900, 'number': 'AN-00042'});
+        await settle();
+        return offer;
+      }))!;
+      expect(store.bexioLink(offer.id)?.number, 'AN-00042');
+
+      await tester.pumpWidget(OffersApp(store: store));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('bexio AN-00042'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, 'AN-00042');
+      await tester.pumpAndSettle();
+      expect(find.text('Anna Muster'), findsOneWidget);
+      expect(find.text('Ben'), findsNothing);
+
+      await tester.tap(find.text('Anna Muster'));
+      await tester.pumpAndSettle();
+      expect(find.text('bexio AN-00042'), findsOneWidget);
+      expect(
+        find.text('Änderungen hier werden nicht nach bexio übertragen.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      expect(find.text('bexio-Nr. kopieren'), findsOneWidget);
+    });
+
+    testWidgets('offers the transfer for offers not in bexio yet', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.reset);
+      final store = await openStore(FakeFirebaseFirestore());
+      await tester.pumpWidget(OffersApp(store: store));
+      await tester.tap(find.text('Neues Angebot'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('In bexio anlegen'));
+      await tester.pumpAndSettle();
+      // Saved first, then stopped before bexio: no customer yet.
+      expect(store.offers, hasLength(1));
+      expect(
+        find.text('Bitte zuerst den Namen des Kunden eingeben.'),
+        findsOneWidget,
+      );
+      expect(find.text('In bexio anlegen?'), findsNothing);
+    });
   });
 }
