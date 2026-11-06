@@ -3,42 +3,42 @@
     "sku": "MS-FB-M001",
     "name": "Fatbike MOOI - Olive Green",
     "category": "Fatbikes",
-    "imageAsset": "",
+    "imageAsset": "assets/products/fatbike-mooi-olive-green.jpg",
     "priceCents": 269000
   },
   {
     "sku": "MS-FB-M002",
     "name": "Fatbike MOOI - Deep Coffee",
     "category": "Fatbikes",
-    "imageAsset": "",
+    "imageAsset": "assets/products/fatbike-mooi-deep-coffee.jpg",
     "priceCents": 269000
   },
   {
     "sku": "MS-FB-MIN001",
     "name": "Fatbike Mini MS - 250W, start assist 6km/h",
     "category": "Fatbikes",
-    "imageAsset": "",
+    "imageAsset": "assets/products/fatbike-mini-ms.jpg",
     "priceCents": 185000
   },
   {
     "sku": "MS-FB-STM001",
     "name": "Fatbike STORM (Dual Battery)",
     "category": "Fatbikes",
-    "imageAsset": "",
+    "imageAsset": "assets/products/fatbike-storm.jpg",
     "priceCents": 269000
   },
   {
     "sku": "MS-V8P-DP001",
     "name": "Fatbike Dapper PRO",
     "category": "Fatbikes",
-    "imageAsset": "",
+    "imageAsset": "assets/products/fatbike-dapper-pro.jpg",
     "priceCents": 249000
   },
   {
     "sku": "MS-V8UM-MS002",
     "name": "Fatbike Mini MS - 350W, throttle 25km/h",
     "category": "Fatbikes",
-    "imageAsset": "",
+    "imageAsset": "assets/products/fatbike-mini-ms.jpg",
     "priceCents": 185000
   },
   {
