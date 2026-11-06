@@ -558,6 +558,24 @@ RepairPreset _presetFromStored(Map<String, dynamic> json) {
   );
 }
 
+/// Supplier order numbers that belong to more than one catalogue product
+/// (e.g. caliper sets ordered together under one number), upper case →
+/// the SKUs of those products. A price for such a number cannot be
+/// assigned to one product.
+Map<String, List<String>> sharedSupplierNumbers(
+  Iterable<CatalogProduct> products,
+) {
+  final bySupplier = <String, List<String>>{};
+  for (final p in products) {
+    final number = p.supplierSku.trim().toUpperCase();
+    if (number.isNotEmpty) (bySupplier[number] ??= []).add(p.sku);
+  }
+  return {
+    for (final MapEntry(:key, :value) in bySupplier.entries)
+      if (value.length > 1) key: value,
+  };
+}
+
 /// Molenstraat's usual bike models, offered as quick picks in the editor.
 const bikeModels = ['Mooi', 'Dapper Pro', 'Mini MS', 'Storm'];
 

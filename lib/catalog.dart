@@ -321,6 +321,7 @@ class PriceListImport {
     required this.prices,
     required this.unknownSkus,
     required this.invalidLines,
+    this.sharedNumbers = const [],
   });
 
   /// Known SKU (upper case) → price in cents.
@@ -331,17 +332,27 @@ class PriceListImport {
 
   /// Lines without a readable SKU and price, e.g. a header.
   final List<String> invalidLines;
+
+  /// Supplier numbers of several products, with those products' SKUs, e.g.
+  /// `OXV8-13 (MS-SP-2004, MS-SP-2008)`; their lines are not imported.
+  final List<String> sharedNumbers;
 }
 
 /// Reads one SKU and price per line: the first column is the SKU, the last
 /// non-empty column the price. Columns are separated by tabs (pasted from
 /// Excel), semicolons or commas. Prices may be written as `24.90`, `24,90`,
-/// `24.-` or `CHF 24.90`.
-PriceListImport parsePriceList(String text, Set<String> knownSkus) {
+/// `24.-` or `CHF 24.90`. A supplier number in [shared] belongs to several
+/// products and is skipped: the product's own SKU has to be used.
+PriceListImport parsePriceList(
+  String text,
+  Set<String> knownSkus, {
+  Map<String, List<String>> shared = const {},
+}) {
   final known = {for (final sku in knownSkus) sku.trim().toUpperCase()};
   final prices = <String, int>{};
   final unknown = <String>[];
   final invalid = <String>[];
+  final sharedLines = <String>[];
   for (final raw in const LineSplitter().convert(text)) {
     final line = raw.trim();
     if (line.isEmpty) continue;
@@ -362,7 +373,11 @@ PriceListImport parsePriceList(String text, Set<String> knownSkus) {
       continue;
     }
     final sku = fields.first.toUpperCase();
-    if (known.contains(sku)) {
+    // A product's own SKU wins over the same text as a supplier number.
+    final owners = shared[sku];
+    if (owners != null && !owners.any((o) => o.toUpperCase() == sku)) {
+      sharedLines.add('${fields.first} (${owners.join(', ')})');
+    } else if (known.contains(sku)) {
       prices[sku] = price;
     } else {
       unknown.add(fields.first);
@@ -372,6 +387,7 @@ PriceListImport parsePriceList(String text, Set<String> knownSkus) {
     prices: prices,
     unknownSkus: unknown,
     invalidLines: invalid,
+    sharedNumbers: sharedLines,
   );
 }
 
@@ -380,16 +396,26 @@ Future<Map<String, int>?> showPriceImportDialog(
   BuildContext context, {
   required Set<String> knownSkus,
   required String currency,
+  Map<String, List<String>> shared = const {},
 }) => showDialog<Map<String, int>>(
   context: context,
-  builder: (_) => _PriceImportDialog(knownSkus: knownSkus, currency: currency),
+  builder: (_) => _PriceImportDialog(
+    knownSkus: knownSkus,
+    currency: currency,
+    shared: shared,
+  ),
 );
 
 class _PriceImportDialog extends StatefulWidget {
-  const _PriceImportDialog({required this.knownSkus, required this.currency});
+  const _PriceImportDialog({
+    required this.knownSkus,
+    required this.currency,
+    required this.shared,
+  });
 
   final Set<String> knownSkus;
   final String currency;
+  final Map<String, List<String>> shared;
 
   @override
   State<_PriceImportDialog> createState() => _PriceImportDialogState();
@@ -408,7 +434,7 @@ class _PriceImportDialogState extends State<_PriceImportDialog> {
   void _parse(String text) => setState(
     () => _result = text.trim().isEmpty
         ? null
-        : parsePriceList(text, widget.knownSkus),
+        : parsePriceList(text, widget.knownSkus, shared: widget.shared),
   );
 
   @override
@@ -450,6 +476,12 @@ class _PriceImportDialogState extends State<_PriceImportDialog> {
                   Text(
                     '${result.unknownSkus.length} unbekannte Artikelnummern '
                     'werden ignoriert: ${sample(result.unknownSkus)}',
+                    style: TextStyle(color: error),
+                  ),
+                if (result.sharedNumbers.isNotEmpty)
+                  Text(
+                    'Mehrere Produkte haben dieselbe Bestellnummer, bitte die '
+                    'MS-Nummer verwenden: ${sample(result.sharedNumbers)}',
                     style: TextStyle(color: error),
                   ),
                 if (result.invalidLines.isNotEmpty)

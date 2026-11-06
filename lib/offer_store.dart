@@ -468,7 +468,10 @@ class OfferStore extends ChangeNotifier {
   /// Imports a price list (SKU or supplier number → price in cents): prices
   /// of catalogue products are written into the shared catalogue, others
   /// into `partPrices`. Returns how many prices changed.
+  /// Supplier numbers shared by several products are skipped: they would
+  /// price an arbitrary one of them.
   Future<int> importPartPrices(Map<String, int> prices) async {
+    final shared = sharedSupplierNumbers(catalog);
     final byNumber = <String, CatalogProduct>{
       for (final p in catalog) ...{
         if (p.supplierSku.isNotEmpty) _skuKey(p.supplierSku): p,
@@ -479,6 +482,10 @@ class OfferStore extends ChangeNotifier {
     final others = <String, int>{};
     for (final MapEntry(:key, :value) in prices.entries) {
       if (value <= 0) continue;
+      final owners = shared[_skuKey(key)];
+      if (owners != null && !owners.any((o) => _skuKey(o) == _skuKey(key))) {
+        continue;
+      }
       final product = byNumber[_skuKey(key)];
       if (product == null) {
         others[_skuKey(key)] = value;

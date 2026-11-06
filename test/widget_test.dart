@@ -696,6 +696,8 @@ void main() {
             'OXV8-17A': 1200,
             'MS-SP-3009': 4500,
             'X-1': 300,
+            // Order number of three caliper sets: skipped.
+            'OXV8-13': 5000,
           }),
           2, // MS-SP-3009 already costs 45.00
         );
@@ -709,6 +711,13 @@ void main() {
         );
         expect(other.savedPartPrice('X-1'), 300);
         expect(other.savedPartPrice('OXV8-17A'), 0);
+        expect(other.savedPartPrice('OXV8-13'), 0);
+        for (final sku in ['MS-SP-2004', 'MS-SP-2008', 'MS-SP-2009']) {
+          expect(
+            other.catalog.firstWhere((p) => p.sku == sku).priceCents,
+            sku == 'MS-SP-2004' ? 21900 : 13900,
+          );
+        }
       },
     );
 
@@ -733,6 +742,43 @@ void main() {
       });
       expect(result.unknownSkus, ['XX-1']);
       expect(result.invalidLines, ['Artikel\tPreis', 'KD002']);
+    });
+
+    test('an order number of several products is not imported', () {
+      const calipers = [
+        CatalogProduct(
+          sku: 'MS-SP-2004',
+          supplierSku: 'OXV8-13',
+          name: 'Full Brake 2x caliper set',
+          category: 'Spare Parts',
+        ),
+        CatalogProduct(
+          sku: 'MS-SP-2008',
+          supplierSku: 'OXV8-13',
+          name: 'Single Brake caliper set (R)',
+          category: 'Spare Parts',
+        ),
+        CatalogProduct(
+          sku: 'MS-SP-2005',
+          supplierSku: 'OXV8-17A',
+          name: 'Brake disc',
+          category: 'Spare Parts',
+        ),
+      ];
+      final shared = sharedSupplierNumbers(calipers);
+      expect(shared, {
+        'OXV8-13': ['MS-SP-2004', 'MS-SP-2008'],
+      });
+      final result = parsePriceList(
+        'oxv8-13;150\nMS-SP-2008;139\nOXV8-17A;9.90\n',
+        {
+          for (final p in calipers) ...[p.sku, p.supplierSku],
+        },
+        shared: shared,
+      );
+      expect(result.prices, {'MS-SP-2008': 13900, 'OXV8-17A': 990});
+      expect(result.sharedNumbers, ['oxv8-13 (MS-SP-2004, MS-SP-2008)']);
+      expect(result.unknownSkus, isEmpty);
     });
   });
 

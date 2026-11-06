@@ -89,6 +89,7 @@ class _SettingsPageState extends State<SettingsPage> {
         for (final p in store.customProducts) p.sku,
       },
       currency: store.settings.currency,
+      shared: sharedSupplierNumbers(store.catalog),
     );
     if (prices == null || !mounted) return;
     final messenger = ScaffoldMessenger.of(context);
