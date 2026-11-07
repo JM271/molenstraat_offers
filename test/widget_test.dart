@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,16 +18,35 @@ import 'package:molenstraat_offers/offer_pdf.dart';
 import 'package:molenstraat_offers/offer_store.dart';
 import 'package:molenstraat_offers/pdf_preview_page.dart';
 
+/// A snapshot of the shared catalogue (56 products of the bexio export).
+/// The app reads the catalogue only from Firestore; tests put this there.
+final catalogSnapshot = [
+  for (final row in jsonDecode(
+    File('test/fixtures/product_catalog.json').readAsStringSync(),
+  ) as List)
+    Map<String, dynamic>.from(row as Map),
+];
+
+/// Writes [catalogSnapshot] into the catalogue of [db] unless it has one.
+Future<void> fillCatalog(FakeFirebaseFirestore db) async {
+  final products = db.collection('workshops/molenstraat/products');
+  if ((await products.limit(1).get()).docs.isNotEmpty) return;
+  for (final row in catalogSnapshot) {
+    final sku = (row['sku'] as String).toUpperCase();
+    await products.doc(OfferStore.documentId(sku)).set(row);
+  }
+}
+
 /// Opens the store like a signed-in member on one device. Several stores on
-/// the same [db] behave like several devices.
+/// the same [db] behave like several devices. The catalogue is filled
+/// first unless [catalog] is false.
 Future<OfferStore> openStore(
   FakeFirebaseFirestore db, {
   String uid = 'u1',
+  bool catalog = true,
 }) async {
+  if (catalog) await fillCatalog(db);
   final store = OfferStore(db, uid);
-  // Not via loadCatalog(): its cached future is bound to the test's zone.
-  final data = await rootBundle.load(catalogAsset);
-  store.useBundledCatalog(parseCatalog(utf8.decode(data.buffer.asUint8List())));
   await store.loaded;
   return store;
 }
@@ -35,8 +55,6 @@ Future<OfferStore> openStore(
 Future<void> settle() => Future<void>.delayed(Duration.zero);
 
 void main() {
-  setUp(resetCatalogCache);
-
   group('money', () {
     test('formats Swiss style', () {
       expect(formatMoney(123456), "CHF 1'234.56");
@@ -479,43 +497,43 @@ void main() {
   group('catalog', () {
     TestWidgetsFlutterBinding.ensureInitialized();
 
-    test('bundled catalog loads and its pictures exist', () async {
-      // Not via loadCatalog(): its cached future would be bound to this
-      // test's zone and never resolve inside the widget test's fake async.
-      final data = await rootBundle.load(catalogAsset);
-      final products = parseCatalog(utf8.decode(data.buffer.asUint8List()));
-      // Only the Molenstraat product list, all with a price.
-      expect(products, hasLength(56));
-      expect(products.where((p) => !p.sku.startsWith('MS-')), isEmpty);
-      expect(products.where((p) => !p.hasListPrice), isEmpty);
-      expect(products.map((p) => p.sku).toSet(), hasLength(products.length));
-      expect(catalogCategories(products), [
-        'Fatbikes',
-        'Spare Parts',
-        'Accessoires',
-      ]);
-      for (final p in products.where((p) => p.imageAsset.isNotEmpty)) {
-        final data = await rootBundle.load(p.imageAsset);
-        expect(data.lengthInBytes, greaterThan(0), reason: p.imageAsset);
-      }
-      final dapper = products.firstWhere((p) => p.sku == 'MS-V8P-DP001');
-      expect(dapper.priceCents, 249000);
-      final disc = products.firstWhere((p) => p.sku == 'MS-SP-2005');
-      expect(disc.priceCents, 990);
-      expect(disc.imageAsset, 'assets/products/oxv8-17a.png');
-      // The supplier number finds the product.
-      expect(disc.supplierSku, 'OXV8-17A');
-      expect(disc.matches('oxv8-17a'), isTrue);
-      expect(disc.matches('brake disc'), isTrue);
-      expect(products.where((p) => p.matches('OXV8-05')).map((p) => p.sku), [
-        'MS-SP-3009',
-      ]);
-      // The two Mini MS versions can be told apart.
-      expect(
-        products.where((p) => p.sku == 'MS-FB-MIN001').single.name,
-        contains('250W'),
-      );
-    });
+    test(
+      'the catalogue snapshot is valid and its pictures are bundled',
+      () async {
+        final products = catalogSnapshot.map(CatalogProduct.fromJson).toList();
+        // Only the Molenstraat product list, all with a price.
+        expect(products, hasLength(56));
+        expect(products.where((p) => !p.sku.startsWith('MS-')), isEmpty);
+        expect(products.where((p) => !p.hasListPrice), isEmpty);
+        expect(products.map((p) => p.sku).toSet(), hasLength(products.length));
+        expect(catalogCategories(products), [
+          'Fatbikes',
+          'Spare Parts',
+          'Accessoires',
+        ]);
+        for (final p in products.where((p) => p.imageAsset.isNotEmpty)) {
+          final data = await rootBundle.load(p.imageAsset);
+          expect(data.lengthInBytes, greaterThan(0), reason: p.imageAsset);
+        }
+        final dapper = products.firstWhere((p) => p.sku == 'MS-V8P-DP001');
+        expect(dapper.priceCents, 249000);
+        final disc = products.firstWhere((p) => p.sku == 'MS-SP-2005');
+        expect(disc.priceCents, 990);
+        expect(disc.imageAsset, 'assets/products/oxv8-17a.png');
+        // The supplier number finds the product.
+        expect(disc.supplierSku, 'OXV8-17A');
+        expect(disc.matches('oxv8-17a'), isTrue);
+        expect(disc.matches('brake disc'), isTrue);
+        expect(products.where((p) => p.matches('OXV8-05')).map((p) => p.sku), [
+          'MS-SP-3009',
+        ]);
+        // The two Mini MS versions can be told apart.
+        expect(
+          products.where((p) => p.sku == 'MS-FB-MIN001').single.name,
+          contains('250W'),
+        );
+      },
+    );
 
     test('article number is kept on the line and in the exports', () async {
       final line = OfferLine.fromJson(
@@ -594,38 +612,35 @@ void main() {
       expect(store.savedPartPriceCount, 2);
     });
 
-    test('the shared catalogue is seeded once from the product list', () async {
+    test('the catalogue comes only from the database', () async {
       final db = FakeFirebaseFirestore();
-      final store = await openStore(db);
-      final bundled = store.catalog;
-      // Until the database has the catalogue, the bundled list stands in.
-      expect(bundled, hasLength(56));
-      expect(
-        store.priceFor(bundled.firstWhere((p) => p.sku == 'MS-SP-2005')),
-        990,
-      );
+      // Nothing bundled stands in for an empty database.
+      final empty = await openStore(db, catalog: false);
+      expect(empty.catalog, isEmpty);
 
-      expect(await store.seedCatalog(bundled), isTrue);
+      await fillCatalog(db);
+      await settle();
+      expect(empty.catalog, hasLength(56));
       final other = await openStore(db, uid: 'u2');
-      other.useBundledCatalog(const []);
-      expect(other.catalog, hasLength(56));
       expect(other.catalog.first.category, 'Fatbikes');
       final disc = other.catalog.firstWhere((p) => p.sku == 'MS-SP-2005');
       expect((disc.priceCents, disc.supplierSku), (990, 'OXV8-17A'));
 
-      // A price changed in the database applies and is not seeded again.
+      // A price changed in the database applies on every device.
       await db
           .doc(
             'workshops/molenstraat/products/${OfferStore.documentId('MS-SP-2005')}',
           )
           .update({'priceCents': 1100});
       await settle();
-      expect(await other.seedCatalog(bundled), isFalse);
-      await settle();
-      expect(
-        other.priceFor(other.catalog.firstWhere((p) => p.sku == 'MS-SP-2005')),
-        1100,
-      );
+      for (final store in [empty, other]) {
+        expect(
+          store.priceFor(
+            store.catalog.firstWhere((p) => p.sku == 'MS-SP-2005'),
+          ),
+          1100,
+        );
+      }
     });
 
     test('a stored price list loses its demo prices once', () async {
@@ -690,7 +705,7 @@ void main() {
         expect(store.savedPartPrice('MS-SP-2005'), 0);
         expect(store.savedPartPrice('RF-M09'), 1990);
 
-        // By SKU or supplier number; the catalogue is filled first.
+        // By SKU or supplier number.
         expect(
           await store.importPartPrices({
             'OXV8-17A': 1200,
@@ -703,7 +718,6 @@ void main() {
         );
         await settle();
         final other = await openStore(db, uid: 'u2');
-        other.useBundledCatalog(const []);
         expect(other.catalog, hasLength(56));
         expect(
           other.catalog.firstWhere((p) => p.sku == 'MS-SP-2005').priceCents,

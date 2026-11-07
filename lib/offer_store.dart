@@ -60,8 +60,6 @@ class OfferStore extends ChangeNotifier {
       workshop.collection('partPrices');
   CollectionReference<Map<String, dynamic>> get _productsRef =>
       workshop.collection('products');
-  DocumentReference<Map<String, dynamic>> get _catalogStateRef =>
-      workshop.collection('catalogConfig').doc('state');
 
   final List<Offer> _offers = [];
   List<RepairPreset> _presets = defaultPresets();
@@ -73,10 +71,8 @@ class OfferStore extends ChangeNotifier {
   final Map<String, _StockedPart> _stockParts = {};
   final Map<String, Set<String>> _stockPartsByNumber = {};
 
-  /// The shared product catalogue in the database, and the list bundled
-  /// with the app that stands in until the database has been filled.
+  /// The shared product catalogue in the database.
   final List<CatalogProduct> _sharedProducts = [];
-  List<CatalogProduct> _bundledProducts = const [];
   final List<CatalogProduct> _customProducts = [];
   final Map<String, int> _lastNumbers = {};
   final Map<String, BexioLink> _bexioLinks = {};
@@ -90,11 +86,10 @@ class OfferStore extends ChangeNotifier {
   List<RepairPreset> get presets => List.unmodifiable(_presets);
   ShopSettings get settings => _settings;
 
-  /// The product catalogue shared with the Inventory app: the products in
-  /// the database, or the bundled product list until they are there.
-  List<CatalogProduct> get catalog => _sharedProducts.isNotEmpty
-      ? List.unmodifiable(_sharedProducts)
-      : _bundledProducts;
+  /// The product catalogue shared with the Inventory app. It lives only in
+  /// the database (kept in sync with bexio by Inventory's tool/bexio_sync);
+  /// the app bundles no copy.
+  List<CatalogProduct> get catalog => List.unmodifiable(_sharedProducts);
 
   /// True if [sku] (or a supplier number of it) is a catalogue product with
   /// a price; that price applies and is not overwritten from offers.
@@ -321,26 +316,6 @@ class OfferStore extends ChangeNotifier {
     super.dispose();
   }
 
-  /// The product list bundled with the app, used until the shared
-  /// catalogue in the database has been filled.
-  void useBundledCatalog(List<CatalogProduct> products) {
-    _bundledProducts = List.unmodifiable(products);
-    notifyListeners();
-  }
-
-  /// Fills the shared catalogue from the bundled product list, once. Does
-  /// nothing if it was filled before (by this or the Inventory app), so
-  /// products changed or deleted later are not brought back.
-  Future<bool> seedCatalog(List<CatalogProduct> bundled) =>
-      db.runTransaction((tx) async {
-        if ((await tx.get(_catalogStateRef)).exists) return false;
-        for (final p in bundled) {
-          tx.set(_productsRef.doc(documentId(_skuKey(p.sku))), p.toJson());
-        }
-        tx.set(_catalogStateRef, {'seeded': true});
-        return true;
-      });
-
   /// Stock of a SKU in the Inventory app, null if it is not stocked there.
   /// A part counts if the SKU is its SKU, own product number or supplier
   /// order number. For a Molenstraat product, parts under its supplier
@@ -494,8 +469,6 @@ class OfferStore extends ChangeNotifier {
       }
     }
     if (products.isNotEmpty) {
-      // Never leave a partly filled catalogue behind.
-      if (_sharedProducts.isEmpty) await seedCatalog(_bundledProducts);
       final batch = db.batch();
       for (final MapEntry(:key, :value) in products.entries) {
         batch.set(_productsRef.doc(documentId(key)), value.toJson());

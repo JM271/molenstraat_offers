@@ -153,7 +153,7 @@ class OfferDiscount {
   );
 }
 
-/// A part from the bundled supplier catalog (`assets/product_catalog.json`).
+/// A product of the shared catalogue (Firestore `products`).
 /// Prices the user enters that differ from [priceCents] are remembered per
 /// SKU in the store and take precedence.
 class CatalogProduct {

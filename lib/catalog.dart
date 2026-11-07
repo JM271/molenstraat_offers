@@ -1,38 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'format.dart';
 import 'models.dart';
 import 'offer_store.dart';
-
-const catalogAsset = 'assets/product_catalog.json';
-
-Future<List<CatalogProduct>>? _catalog;
-
-/// Forgets the cached catalog. Tests call this because a cached future
-/// stays bound to the (fake async) zone of the test that loaded it.
-@visibleForTesting
-void resetCatalogCache() => _catalog = null;
-
-/// Loads the bundled product catalog once and keeps it for the app's lifetime.
-Future<List<CatalogProduct>> loadCatalog({AssetBundle? bundle}) =>
-    _catalog ??= _readCatalog(bundle ?? rootBundle);
-
-// Decoded here rather than with loadString(), which moves files over 50 KB
-// to a background isolate and caches the result; the catalog is small
-// enough to parse directly.
-Future<List<CatalogProduct>> _readCatalog(AssetBundle bundle) async {
-  final data = await bundle.load(catalogAsset);
-  return parseCatalog(utf8.decode(data.buffer.asUint8List()));
-}
-
-/// Parses the catalog JSON, skipping entries without SKU or name.
-List<CatalogProduct> parseCatalog(String json) => [
-  for (final row in jsonDecode(json) as List)
-    CatalogProduct.fromJson(Map<String, dynamic>.from(row as Map)),
-].where((p) => p.sku.isNotEmpty && p.name.isNotEmpty).toList();
 
 /// Short stock text such as "Lager 3" or "Lager 2 + 1 Auto".
 String stockLabel(StockLevel stock) => stock.car > 0

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'brand.dart';
-import 'catalog.dart';
 import 'firebase_config.dart';
 import 'offer_store.dart';
 
@@ -122,21 +121,13 @@ class _MembershipGateState extends State<_MembershipGate> {
       .snapshots(includeMetadataChanges: true);
   OfferStore? _store;
 
-  /// Opens the shared data. On first use it fills the shared product
-  /// catalogue from the bundled list and updates the stored price list; a
+  /// Opens the shared data and updates the stored price list once; a
   /// failure only means this runs again on the next start.
   OfferStore _openStore() {
     final store = OfferStore(_db, widget.user.uid);
-    loadCatalog()
-        .then((bundled) async {
-          store.useBundledCatalog(bundled);
-          await store.loaded;
-          await store.seedCatalog(bundled);
-          await store.migratePresets();
-        })
-        .catchError((Object e) {
-          debugPrint('Katalog oder Preisliste nicht eingerichtet: $e');
-        });
+    store.loaded.then((_) => store.migratePresets()).catchError((Object e) {
+      debugPrint('Preisliste nicht aktualisiert: $e');
+    });
     return store;
   }
 
