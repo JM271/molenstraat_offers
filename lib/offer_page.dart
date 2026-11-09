@@ -1,4 +1,5 @@
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
@@ -25,7 +26,7 @@ class OfferPage extends StatefulWidget {
   State<OfferPage> createState() => _OfferPageState();
 }
 
-enum _Action { preview, share, print, copy, bexio, delete }
+enum _Action { preview, share, download, print, copy, bexio, delete }
 
 class _OfferPageState extends State<OfferPage> {
   late final Offer _offer = widget.offer;
@@ -200,6 +201,30 @@ class _OfferPageState extends State<OfferPage> {
     if (picked != null) _change(() => _offer.validUntil = picked);
   }
 
+  /// Saves the offer PDF where the user picks: Files on iPhone, a folder
+  /// on Android, the downloads folder in the browser.
+  Future<void> _downloadPdf(Offer offer) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final bytes = await buildOfferPdf(offer, _settings);
+      final saved = await FilePicker.saveFile(
+        fileName: offerFileName(offer),
+        bytes: bytes,
+        mimeType: 'application/pdf',
+        dialogTitle: 'PDF speichern',
+      );
+      if (saved != null) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('PDF gespeichert')),
+        );
+      }
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('PDF konnte nicht gespeichert werden: $e')),
+      );
+    }
+  }
+
   Future<void> _onAction(_Action action) async {
     // Anything handed out must be saved, with its final number.
     if (action != _Action.delete &&
@@ -222,6 +247,8 @@ class _OfferPageState extends State<OfferPage> {
         final bytes = await buildOfferPdf(offer, _settings);
         await Printing.sharePdf(bytes: bytes, filename: offerFileName(offer));
         await _askMarkSent();
+      case _Action.download:
+        await _downloadPdf(offer);
       case _Action.print:
         await Printing.layoutPdf(
           name: offerFileName(offer),
@@ -371,6 +398,13 @@ class _OfferPageState extends State<OfferPage> {
                   child: ListTile(
                     leading: Icon(Icons.share),
                     title: Text('PDF teilen'),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: _Action.download,
+                  child: ListTile(
+                    leading: Icon(Icons.download),
+                    title: Text('PDF speichern'),
                   ),
                 ),
                 const PopupMenuItem(
