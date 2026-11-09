@@ -4,7 +4,7 @@ Flutter app for writing repair offers (Reparaturangebote) for Molenstraat Fatbik
 
 ## Features
 
-- **Angebote**: list of all offers with search (customer, number, frame number, bike, finding) and a status filter: Entwurf, Gesendet, Angenommen, Abgelehnt. Sent offers past their validity date show as *abgelaufen*.
+- **Angebote**: list of all offers with search (customer, number, frame number, bike, finding) and a status filter: Entwurf, Gesendet, Angenommen, Abgelehnt. Sent offers past their validity date show as *abgelaufen*. Swipe an offer to the left (or long-press it) to delete it, after a confirmation; a quote already created in bexio stays there.
 - **Angebot erfassen**: customer, bike model and frame number, finding / customer request, line items, notes and validity date. Offer numbers run per year (`A-2026-001`, …) and are never reused, even after deleting.
 - **Positionen**: pick common repairs from the price list (each adds its labour and part lines), or add parts (pieces × price) and labour (minutes × hourly rate) individually. Lines without a price are flagged in red.
 - **Teil aus Katalog**: pick a product from the product catalog shared with Spoke: the Molenstraat product list from bexio, 56 products with `MS-…` article numbers (fatbikes, spare parts, accessories) and their sales prices, with a picture where the former supplier catalog had one. Searching for a supplier number (e.g. `OXV8-05`) finds the product. Search by name or article number and filter by category. The product's catalog price is filled in; a different price on an offer applies to that offer only. Products without a price (added in Spoke) get the price stored in `partPrices` if there is one; otherwise they show *Preis fehlt* and the line dialog asks for a price.

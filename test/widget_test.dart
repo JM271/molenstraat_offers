@@ -460,6 +460,40 @@ void main() {
     expect(find.byType(OfferPage), findsNothing);
   });
 
+  testWidgets('swiping an offer in the list deletes it after asking', (
+    tester,
+  ) async {
+    final store = await openStore(FakeFirebaseFirestore());
+    await store.saveOffer(store.newOffer()..customerName = 'Anna Muster');
+    await store.saveOffer(store.newOffer()..customerName = 'Bob Beispiel');
+    await tester.pumpWidget(OffersApp(store: store));
+    await tester.pumpAndSettle();
+
+    // Cancelling keeps the offer.
+    await tester.drag(find.text('Anna Muster'), const Offset(-600, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Angebot löschen?'), findsOneWidget);
+    await tester.tap(find.text('Abbrechen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Anna Muster'), findsOneWidget);
+    expect(store.offers, hasLength(2));
+
+    await tester.drag(find.text('Anna Muster'), const Offset(-600, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Löschen'));
+    await tester.pumpAndSettle();
+    expect(find.text('Anna Muster'), findsNothing);
+    expect(store.offers.map((o) => o.customerName), ['Bob Beispiel']);
+
+    // A long press asks too.
+    await tester.longPress(find.text('Bob Beispiel'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Löschen'));
+    await tester.pumpAndSettle();
+    expect(store.offers, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('labour is entered in minutes', (tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 3;

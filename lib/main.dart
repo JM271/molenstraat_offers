@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'brand.dart';
+import 'dialogs.dart';
 import 'firebase_gate.dart';
 import 'format.dart';
 import 'models.dart';
@@ -65,6 +66,34 @@ class _HomePageState extends State<HomePage> {
 
   void _push(Widget page) =>
       Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+
+  /// Asks, then deletes [offer]. True if it is deleted, so the swiped card
+  /// can go; on a failure the card stays and the error shows.
+  Future<bool> _delete(Offer offer) async {
+    final bexio = store.bexioLink(offer.id);
+    final ok = await confirm(
+      context,
+      title: 'Angebot löschen?',
+      message:
+          'Angebot ${offer.number}'
+          '${offer.customerName.isEmpty ? '' : ' (${offer.customerName})'}'
+          ' wird endgültig gelöscht.'
+          '${bexio != null && bexio.isDone ? ' Die Offerte ${bexio.number} in bexio bleibt bestehen.' : ''}',
+      action: 'Löschen',
+    );
+    if (!ok || !mounted) return false;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await store.deleteOffer(offer.id);
+      messenger.showSnackBar(
+        SnackBar(content: Text('Angebot ${offer.number} gelöscht')),
+      );
+      return true;
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(cloudError(e))));
+      return false;
+    }
+  }
 
   bool _matches(Offer o) {
     if (_filter != null && o.status != _filter) return false;
@@ -197,14 +226,33 @@ class _HomePageState extends State<HomePage> {
                 padding: const EdgeInsets.fromLTRB(12, 4, 12, 100),
                 sliver: SliverList.builder(
                   itemCount: offers.length,
-                  itemBuilder: (context, i) => _OfferCard(
-                    offer: offers[i],
-                    settings: store.settings,
-                    bexioNumber: switch (store.bexioLink(offers[i].id)) {
-                      final link? when link.isDone => link.number,
-                      _ => '',
-                    },
-                    onTap: () => _open(offers[i].copy()),
+                  itemBuilder: (context, i) => Dismissible(
+                    key: ValueKey(offers[i].id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 24),
+                      child: Icon(
+                        Icons.delete_outline,
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                      ),
+                    ),
+                    confirmDismiss: (_) => _delete(offers[i]),
+                    child: _OfferCard(
+                      offer: offers[i],
+                      settings: store.settings,
+                      bexioNumber: switch (store.bexioLink(offers[i].id)) {
+                        final link? when link.isDone => link.number,
+                        _ => '',
+                      },
+                      onTap: () => _open(offers[i].copy()),
+                      onLongPress: () => _delete(offers[i]),
+                    ),
                   ),
                 ),
               ),
@@ -225,12 +273,16 @@ class _OfferCard extends StatelessWidget {
     required this.offer,
     required this.settings,
     required this.onTap,
+    required this.onLongPress,
     this.bexioNumber = '',
   });
 
   final Offer offer;
   final ShopSettings settings;
   final VoidCallback onTap;
+
+  /// Deletes the offer, after asking.
+  final VoidCallback onLongPress;
 
   /// Number of the offer's quote in bexio, empty if not transferred.
   final String bexioNumber;
@@ -264,6 +316,7 @@ class _OfferCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
